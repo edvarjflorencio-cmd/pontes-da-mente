@@ -1,0 +1,486 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pontes da Mente</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Baloo+2:wght@600;700&display=swap">
+<style>
+/* Layout: one calm phone-sized game screen; on wide screens it sits centered like a device. Single soft-light world on purpose (predictable for autistic children). */
+:root{
+  --sky:#DCEBEA;        /* fundo, céu nublado claro */
+  --sea:#A9CFD0;        /* água */
+  --sea-deep:#7FB3B6;
+  --land:#CFE0B9;       /* ilhas */
+  --land-edge:#9DBF8C;
+  --wood:#C8935B;       /* pontes construídas */
+  --ink:#1F3B44;        /* texto */
+  --ink-soft:#4E6870;
+  --card:#FBFDFC;
+  --line:#C7DAD9;
+  --sun:#F2C14E;        /* destaque: botão Jogar */
+  --sun-ink:#4A3510;
+  --calm:#B9B3D9;       /* tudo que é calma */
+  --calm-ink:#2F2A55;
+  --ok:#5E9B6F;
+  --display:"Baloo 2","Trebuchet MS",system-ui,sans-serif;
+  --body:"Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --r:22px;
+  color-scheme:light;
+}
+html,body{height:100%}
+body{margin:0;background:var(--sky);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.45;-webkit-tap-highlight-color:transparent}
+body.big{font-size:20px}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,a:focus-visible{outline:3px solid var(--ink);outline-offset:3px}
+h1,h2{font-family:var(--display);font-weight:700;line-height:1.1;margin:0;text-wrap:balance}
+h1{font-size:1.9em}
+h2{font-size:1.5em}
+p{margin:0}
+
+.app{position:relative;height:100%;max-width:440px;margin:0 auto;display:flex;flex-direction:column;overflow:hidden;background:var(--sky)}
+@media (min-width:700px){
+  body{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding-block:20px}
+  .app{height:min(860px,calc(100% - 50px));width:400px;border-radius:40px;border:10px solid var(--ink);box-shadow:0 20px 60px rgba(31,59,68,.25)}
+  .caption{display:block!important}
+}
+.caption{display:none;color:var(--ink-soft);font-size:13px;text-align:center}
+.caption a{color:var(--ink)}
+
+/* barra de cima */
+.top{display:flex;align-items:center;gap:10px;padding:10px max(16px,env(safe-area-inset-right,0px)) 6px max(16px,env(safe-area-inset-left,0px))}
+.top .spacer{flex:1}
+.icon-btn{width:48px;height:48px;border-radius:50%;border:2px solid var(--line);background:var(--card);display:grid;place-items:center;padding:0}
+.icon-btn svg{width:24px;height:24px}
+.calm-btn{height:48px;border-radius:24px;border:0;background:var(--calm);color:var(--calm-ink);font-weight:700;padding:0 16px 0 12px;display:flex;align-items:center;gap:8px}
+.calm-btn svg{width:24px;height:24px}
+.lock{opacity:.55;border-color:transparent;background:transparent}
+
+.screen{flex:1;display:flex;flex-direction:column;min-height:0;overflow-y:auto;padding:6px max(16px,env(safe-area-inset-right,0px)) 20px max(16px,env(safe-area-inset-left,0px));gap:16px}
+.screen[hidden]{display:none!important}
+
+/* mapa */
+.map-head{display:flex;flex-direction:column;gap:4px}
+.map-head p{color:var(--ink-soft)}
+.mapbox{flex:1;min-height:260px;position:relative}
+.mapbox svg{width:100%;height:100%;display:block}
+.plank{fill:var(--wood);stroke:#8E6337;stroke-width:1.5}
+.ghost{fill:none;stroke:var(--sea-deep);stroke-width:2;stroke-dasharray:5 5}
+.bridge.built .ghost{display:none}
+.bridge:not(.built) .plank{display:none}
+.bridge.just .plank{animation:drop .5s backwards}
+.bridge.just .plank:nth-child(2){animation-delay:.1s}.bridge.just .plank:nth-child(3){animation-delay:.2s}.bridge.just .plank:nth-child(4){animation-delay:.3s}.bridge.just .plank:nth-child(5){animation-delay:.4s}
+@keyframes drop{from{transform:translateY(-14px);opacity:0}}
+#hero{transition:transform 1.4s ease-in-out}
+.bob{animation:bob 3s ease-in-out infinite}
+@keyframes bob{50%{transform:translateY(-4px)}}
+
+.play{border:0;border-radius:var(--r);background:var(--sun);color:var(--sun-ink);font-family:var(--display);font-size:1.6em;font-weight:700;padding:16px;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 5px 0 #C99A2E}
+.play:active{transform:translateY(3px);box-shadow:0 2px 0 #C99A2E}
+.play svg{width:30px;height:30px}
+.hint{display:flex;align-items:center;justify-content:center;gap:6px;color:var(--ink-soft);font-size:.9em}
+
+/* missões */
+.step{font-size:.85em;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft);font-weight:700}
+.scene{background:var(--card);border-radius:var(--r);padding:16px;display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center}
+.scene svg{width:150px;height:150px}
+.scene .say{font-size:1.15em;font-weight:700}
+.choices{display:grid;gap:12px}
+.choice{display:flex;align-items:center;gap:14px;text-align:left;background:var(--card);border:3px solid var(--line);border-radius:var(--r);padding:12px 16px;font-size:1.1em;font-weight:700;min-height:64px}
+.choice svg{width:44px;height:44px;flex:none}
+#c1 .choice svg{width:58px;height:58px}
+.choice.picked{border-color:var(--ink)}
+.feedback{border-radius:var(--r);padding:16px;background:#E6F1E8;display:flex;flex-direction:column;gap:12px}
+.feedback.soft{background:#F3EEDD}
+.feedback p{font-size:1.05em}
+.next{border:0;border-radius:var(--r);background:var(--ink);color:var(--card);font-weight:700;font-size:1.1em;padding:14px}
+.quiet{background:none;border:0;color:var(--ink-soft);text-decoration:underline;padding:8px;align-self:center}
+
+/* bolha de respirar */
+.bubble-wrap{flex:1;display:grid;place-items:center;min-height:240px}
+.bubble{width:120px;height:120px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff 0 12%,var(--calm) 60%);display:grid;place-items:center;font-weight:700;color:var(--calm-ink);transition:transform 4s ease-in-out;text-align:center;font-size:1.05em}
+.bubble.in{transform:scale(1.8)}
+.count{color:var(--ink-soft);text-align:center}
+
+/* calma */
+#calma{background:#E9E6F4}
+#calma .bubble{background:radial-gradient(circle at 35% 30%,#fff 0 12%,var(--calm) 60%)}
+.pace{display:flex;gap:8px;justify-content:center}
+.pace button{border:2px solid var(--calm);background:var(--card);border-radius:20px;padding:8px 14px;font-weight:700;color:var(--calm-ink)}
+.pace button[aria-pressed="true"]{background:var(--calm)}
+
+/* overlays */
+.overlay{position:absolute;inset:0;background:rgba(31,59,68,.45);display:flex;align-items:flex-end;z-index:20}
+.overlay[hidden]{display:none!important}
+.sheet{background:var(--card);width:100%;border-radius:28px 28px 0 0;padding:22px max(18px,env(safe-area-inset-right,0px)) calc(22px + env(safe-area-inset-bottom,0px)) max(18px,env(safe-area-inset-left,0px));display:flex;flex-direction:column;gap:14px}
+.bar{height:14px;border-radius:7px;background:var(--line);overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--ok);transition:width 1s linear}
+.keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.keypad button{height:56px;border-radius:16px;border:2px solid var(--line);background:var(--sky);font-size:1.3em;font-weight:700}
+.dots{display:flex;gap:12px;justify-content:center}
+.dots i{width:16px;height:16px;border-radius:50%;border:2px solid var(--ink)}
+.dots i.on{background:var(--ink)}
+.err{color:#9B3B2F;text-align:center;min-height:1.4em}
+
+/* adulto */
+#adult{background:#F2F6F6}
+.panel{background:var(--card);border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:12px;border:1px solid var(--line)}
+.panel h3{margin:0;font-size:1.05em}
+.seg{display:flex;flex-wrap:wrap;gap:8px}
+.seg button{flex:1 1 auto;border:2px solid var(--line);background:var(--card);border-radius:14px;padding:10px 12px;font-weight:700;min-width:0}
+.seg button[aria-pressed="true"]{border-color:var(--ink);background:var(--ink);color:var(--card)}
+.note{color:var(--ink-soft);font-size:.9em}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center}
+.stats b{display:block;font-family:var(--display);font-size:1.7em;font-variant-numeric:tabular-nums}
+.stats span{font-size:.8em;color:var(--ink-soft)}
+.toggle{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.switch{width:56px;height:32px;border-radius:16px;border:0;background:var(--line);position:relative;flex:none;padding:0}
+.switch::after{content:"";position:absolute;top:4px;left:4px;width:24px;height:24px;border-radius:50%;background:#fff;transition:left .2s}
+.switch[aria-checked="true"]{background:var(--ok)}
+.switch[aria-checked="true"]::after{left:28px}
+.help li{margin-bottom:6px}
+.help{margin:0;padding-left:20px}
+.link-btn{display:block;text-align:center;border-radius:14px;border:2px solid var(--ink);padding:12px;color:var(--ink);font-weight:700;text-decoration:none}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition-duration:.01ms!important}
+}
+</style>
+</head>
+<body>
+
+
+<div class="app" id="app">
+  <div class="top" id="topbar">
+    <button class="icon-btn" id="speak" aria-label="Ouvir as instruções">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/></svg>
+    </button>
+    <div class="spacer"></div>
+    <button class="calm-btn" id="calmBtn" aria-label="Estou mal: ir para a calma">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M7 18h10a4 4 0 0 0 .5-8 6 6 0 0 0-11.4 1.5A3.3 3.3 0 0 0 7 18z"/></svg>
+      Calma
+    </button>
+    <button class="icon-btn lock" id="lockBtn" aria-label="Área do adulto">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+    </button>
+  </div>
+
+  <!-- MAPA -->
+  <section class="screen" id="map" data-say="">
+    <div class="map-head">
+      <h1 id="mapTitle">Olá! Vamos atravessar as pontes?</h1>
+      <p id="mapSub">Cada missão constrói uma ponte. Sem pressa.</p>
+    </div>
+    <div class="mapbox">
+      <svg viewBox="0 0 360 300" aria-label="Mapa com quatro ilhas e três pontes">
+        <rect width="360" height="300" rx="24" fill="var(--sea)"/>
+        <path d="M20 60 q15 -8 30 0 t30 0 M250 250 q15 -8 30 0 t30 0 M150 135 q12 -6 24 0 t24 0" stroke="var(--sea-deep)" stroke-width="3" fill="none" stroke-linecap="round"/>
+        <!-- ilhas -->
+        <ellipse cx="62" cy="235" rx="52" ry="34" fill="var(--land)" stroke="var(--land-edge)" stroke-width="3"/>
+        <ellipse cx="145" cy="170" rx="40" ry="26" fill="var(--land)" stroke="var(--land-edge)" stroke-width="3"/>
+        <ellipse cx="230" cy="112" rx="40" ry="26" fill="var(--land)" stroke="var(--land-edge)" stroke-width="3"/>
+        <ellipse cx="300" cy="52" rx="48" ry="30" fill="var(--land)" stroke="var(--land-edge)" stroke-width="3"/>
+        <!-- árvores e casinha final -->
+        <circle cx="35" cy="220" r="10" fill="var(--land-edge)"/><circle cx="150" cy="158" r="7" fill="var(--land-edge)"/><circle cx="215" cy="102" r="7" fill="var(--land-edge)"/>
+        <g transform="translate(312 22)"><path d="M0 18 L16 4 L32 18 Z" fill="var(--wood)"/><rect x="4" y="18" width="24" height="16" fill="var(--card)" stroke="var(--wood)" stroke-width="2"/><rect x="13" y="24" width="7" height="10" fill="var(--wood)"/></g>
+        <!-- pontes -->
+        <g class="bridge" id="b1" transform="translate(98 214) rotate(-37)"><rect class="ghost" x="0" y="-8" width="40" height="16" rx="3"/><rect class="plank" x="0" y="-8" width="7" height="16"/><rect class="plank" x="8.5" y="-8" width="7" height="16"/><rect class="plank" x="17" y="-8" width="7" height="16"/><rect class="plank" x="25.5" y="-8" width="7" height="16"/><rect class="plank" x="34" y="-8" width="6" height="16"/></g>
+        <g class="bridge" id="b2" transform="translate(180 150) rotate(-34)"><rect class="ghost" x="0" y="-8" width="40" height="16" rx="3"/><rect class="plank" x="0" y="-8" width="7" height="16"/><rect class="plank" x="8.5" y="-8" width="7" height="16"/><rect class="plank" x="17" y="-8" width="7" height="16"/><rect class="plank" x="25.5" y="-8" width="7" height="16"/><rect class="plank" x="34" y="-8" width="6" height="16"/></g>
+        <g class="bridge" id="b3" transform="translate(264 94) rotate(-38)"><rect class="ghost" x="0" y="-8" width="34" height="16" rx="3"/><rect class="plank" x="0" y="-8" width="6" height="16"/><rect class="plank" x="7" y="-8" width="6" height="16"/><rect class="plank" x="14" y="-8" width="6" height="16"/><rect class="plank" x="21" y="-8" width="6" height="16"/><rect class="plank" x="28" y="-8" width="6" height="16"/></g>
+        <!-- personagem Tico -->
+        <g id="hero" transform="translate(70 225)"><g class="bob">
+          <ellipse cx="0" cy="14" rx="14" ry="4" fill="rgba(31,59,68,.18)"/>
+          <circle cx="0" cy="0" r="15" fill="var(--sun)" stroke="#C99A2E" stroke-width="2"/>
+          <circle cx="-5" cy="-3" r="2.2" fill="var(--ink)"/><circle cx="5" cy="-3" r="2.2" fill="var(--ink)"/>
+          <path d="M-5 4 q5 4 10 0" stroke="var(--ink)" stroke-width="2" fill="none" stroke-linecap="round"/>
+          <path d="M-3 -15 q3 -7 7 -3" stroke="var(--ok)" stroke-width="3" fill="none" stroke-linecap="round"/>
+        </g></g>
+      </svg>
+    </div>
+    <button class="play" id="playBtn">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+      <span id="playLabel">Jogar</span>
+    </button>
+    <p class="hint" id="mapHint">Toque em Jogar para começar a primeira missão.</p>
+  </section>
+
+  <!-- MISSÃO 1: emoções -->
+  <section class="screen" id="m1" hidden data-say="O sorvete do Leo caiu no chão. Olhe o rosto dele. Como o Leo está se sentindo? Feliz, triste ou bravo?">
+    <p class="step">Ponte 1 de 3 · Emoções</p>
+    <div class="scene">
+      <svg viewBox="0 0 150 150" id="leoFace" aria-label="Rosto do Leo, com a boca para baixo"></svg>
+      <p class="say">O sorvete do Leo caiu no chão.</p>
+      <p>Olhe o rosto dele. Como o Leo está se sentindo?</p>
+    </div>
+    <div class="choices" id="c1"></div>
+    <div class="feedback" id="f1" hidden><p id="f1t"></p><button class="next" data-done="1">Construir a ponte</button></div>
+  </section>
+
+  <!-- MISSÃO 2: respirar -->
+  <section class="screen" id="m2" hidden data-say="Vamos respirar com a bolha. Quando ela crescer, puxe o ar. Quando ela diminuir, solte o ar. Vamos fazer três vezes.">
+    <p class="step">Ponte 2 de 3 · Respirar</p>
+    <h2>Respire junto com a bolha</h2>
+    <p>Quando ela crescer, puxe o ar. Quando diminuir, solte devagar.</p>
+    <div class="bubble-wrap"><div class="bubble" id="bub">Toque em começar</div></div>
+    <p class="count" id="bubCount">Vamos fazer 3 vezes.</p>
+    <button class="play" id="bubStart" style="font-size:1.25em">Começar</button>
+    <div class="feedback" id="f2" hidden><p>Muito bem. Respirar devagar ajuda o corpo a ficar calmo. Você pode fazer isso em qualquer lugar.</p><button class="next" data-done="2">Construir a ponte</button></div>
+  </section>
+
+  <!-- MISSÃO 3: social -->
+  <section class="screen" id="m3" hidden data-say="A Bia está brincando de blocos. Você quer brincar também. O que você pode fazer?">
+    <p class="step">Ponte 3 de 3 · Brincar junto</p>
+    <div class="scene">
+      <svg viewBox="0 0 150 150" aria-label="A Bia brincando com blocos coloridos">
+        <circle cx="55" cy="55" r="30" fill="#F2D3B3"/><path d="M27 48 q28 -38 56 0" fill="#6B4A3A"/>
+        <circle cx="46" cy="57" r="3" fill="var(--ink)"/><circle cx="64" cy="57" r="3" fill="var(--ink)"/><path d="M46 68 q9 7 18 0" stroke="var(--ink)" stroke-width="3" fill="none" stroke-linecap="round"/>
+        <rect x="90" y="100" width="22" height="22" rx="3" fill="var(--sun)"/><rect x="114" y="100" width="22" height="22" rx="3" fill="var(--calm)"/><rect x="102" y="76" width="22" height="22" rx="3" fill="var(--ok)"/>
+        <rect x="30" y="92" width="50" height="40" rx="18" fill="var(--sea-deep)"/>
+      </svg>
+      <p class="say">A Bia está brincando de blocos.</p>
+      <p>Você quer brincar também. O que você pode fazer?</p>
+    </div>
+    <div class="choices" id="c3"></div>
+    <div class="feedback" id="f3" hidden><p id="f3t"></p><button class="next" data-done="3">Construir a ponte</button></div>
+  </section>
+
+  <!-- FIM -->
+  <section class="screen" id="fim" hidden data-say="Você atravessou as três pontes de hoje! Agora é hora de descansar. Conte para um adulto como foi.">
+    <div class="scene" style="margin-top:20px">
+      <svg viewBox="0 0 150 150" aria-hidden="true"><circle cx="75" cy="75" r="50" fill="var(--sun)" stroke="#C99A2E" stroke-width="3"/><circle cx="58" cy="68" r="6" fill="var(--ink)"/><circle cx="92" cy="68" r="6" fill="var(--ink)"/><path d="M55 90 q20 18 40 0" stroke="var(--ink)" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M68 25 q8 -18 20 -8" stroke="var(--ok)" stroke-width="6" fill="none" stroke-linecap="round"/></svg>
+      <h1>Você atravessou as 3 pontes!</h1>
+      <p>Por hoje é só. Agora é hora de descansar.</p>
+      <p><b>Conte para um adulto como foi.</b></p>
+    </div>
+    <button class="next" id="again">Voltar ao mapa</button>
+  </section>
+
+  <!-- CALMA -->
+  <section class="screen" id="calma" hidden data-say="Está tudo bem. Respire com a bolha. Pode ficar aqui o tempo que precisar.">
+    <h2>Está tudo bem.</h2>
+    <p>Respire com a bolha. Pode ficar aqui o tempo que precisar.</p>
+    <div class="bubble-wrap"><div class="bubble" id="calmBub">Puxe o ar</div></div>
+    <div class="pace" role="group" aria-label="Velocidade da bolha">
+      <button id="paceN" aria-pressed="true">Normal</button>
+      <button id="paceS" aria-pressed="false">Mais devagar</button>
+      <button id="paceP" aria-pressed="false">Parada</button>
+    </div>
+    <button class="next" id="calmBack">Voltar quando eu quiser</button>
+  </section>
+
+  <!-- ADULTO -->
+  <section class="screen" id="adult" hidden data-say="">
+    <h2>Área do adulto</h2>
+    <div class="panel">
+      <h3>Hoje</h3>
+      <div class="stats">
+        <div><b id="stB">0</b><span>pontes de 3</span></div>
+        <div><b id="stC">0</b><span>vezes na calma</span></div>
+        <div><b id="stT">20</b><span>min de limite</span></div>
+      </div>
+      <p class="note" id="stMood">Emoção escolhida na missão: ainda não jogou.</p>
+      <p class="note">Dica: converse 2 minutos depois do jogo. Pergunte: "Qual ponte foi mais fácil?"</p>
+    </div>
+    <div class="panel">
+      <h3>Tempo por dia</h3>
+      <div class="seg" id="segTempo"><button data-v="15">15 min</button><button data-v="20" aria-pressed="true">20 min</button><button data-v="30">30 min</button></div>
+    </div>
+    <div class="panel">
+      <h3>Pausa no meio do jogo</h3>
+      <div class="seg" id="segPausa"><button data-v="off">Desligada</button><button data-v="lembrete" aria-pressed="true">Lembrete</button><button data-v="obrig">Obrigatória</button></div>
+      <p class="note" id="pausaNote">Lembrete: o jogo sugere uma pausa de 20 segundos, e a criança pode continuar se quiser.</p>
+    </div>
+    <div class="panel">
+      <div class="toggle"><span>Voz que lê as instruções</span><button class="switch" id="swVoz" role="switch" aria-checked="true" aria-label="Voz"></button></div>
+      <div class="toggle"><span>Letra maior</span><button class="switch" id="swLetra" role="switch" aria-checked="false" aria-label="Letra maior"></button></div>
+    </div>
+    <div class="panel">
+      <h3>Privacidade</h3>
+      <p class="note">Nada sai deste aparelho. Não pedimos nome, foto ou localização da criança. Gratuito, sem anúncios, sem chat e sem outros jogadores.</p>
+    </div>
+    <div class="panel">
+      <h3>Onde buscar ajuda</h3>
+      <ul class="help note">
+        <li>CAPSi (Centro de Atenção Psicossocial Infantojuvenil) da sua região.</li>
+        <li>UBS (posto de saúde) mais perto de casa.</li>
+        <li>Emergência: SAMU 192.</li>
+      </ul>
+      <p class="note">Este jogo complementa, e não substitui, o acompanhamento com profissionais.</p>
+    </div>
+    <a class="link-btn" href="https://docs.google.com/forms/d/e/1FAIpQLScUQvhbiZrTYYqaXHi3QZbGgzjgL65Ndl_ddWXfsHKLCGzgLA/viewform" target="_blank" rel="noopener">Avaliar este protótipo (3 min, anônimo)</a>
+    <button class="next" id="adultBack">Voltar ao jogo</button>
+  </section>
+
+  <!-- PIN -->
+  <div class="overlay" id="pin" hidden>
+    <div class="sheet" role="dialog" aria-label="Digite o PIN do adulto">
+      <h2>Só para adultos</h2>
+      <p class="note">Digite o PIN. Para testar, use 1234.</p>
+      <div class="dots"><i></i><i></i><i></i><i></i></div>
+      <p class="err" id="pinErr"></p>
+      <div class="keypad" id="keypad"></div>
+      <button class="quiet" id="pinCancel">Cancelar</button>
+    </div>
+  </div>
+
+  <!-- PAUSA -->
+  <div class="overlay" id="pause" hidden>
+    <div class="sheet" role="dialog" aria-label="Pausa">
+      <h2 id="pTitle">Que tal uma pausa?</h2>
+      <p id="pText">Olhe pela janela e mexa os braços. São só 20 segundos.</p>
+      <div class="bar" id="pBar" hidden><i id="pFill"></i></div>
+      <button class="next" id="pStart">Fazer a pausa</button>
+      <button class="quiet" id="pSkip">Continuar jogando</button>
+    </div>
+  </div>
+</div>
+<p class="caption">Protótipo · Projeto de extensão IESB · <a href="https://docs.google.com/forms/d/e/1FAIpQLScUQvhbiZrTYYqaXHi3QZbGgzjgL65Ndl_ddWXfsHKLCGzgLA/viewform" target="_blank" rel="noopener">avaliar o protótipo</a></p>
+
+<script>
+(function(){
+const $=s=>document.querySelector(s);
+const S={built:0,calm:0,mood:null,tempo:20,pausa:'lembrete',voz:true,letra:false,pauseDone:false,current:'map',back:'map'};
+const childScreens=['map','m1','m2','m3','fim','calma'];
+
+function face(kind,hair=true){
+  const mouth={feliz:'M50 98 q25 22 50 0',triste:'M50 108 q25 -20 50 0',bravo:'M52 104 h46'}[kind];
+  const brows=kind==='bravo'?'<path d="M40 52 l26 10 M110 52 l-26 10" stroke="#1F3B44" stroke-width="5" stroke-linecap="round"/>':kind==='triste'?'<path d="M42 60 l22 -8 M108 60 l-22 -8" stroke="#1F3B44" stroke-width="4" stroke-linecap="round"/>':'';
+  const tear=kind==='triste'?'<path d="M56 82 q-4 10 0 14 q4 -4 0 -14z" fill="#7FB3B6"/>':'';
+  return `<circle cx="75" cy="75" r="60" fill="#F2D3B3"/>${hair?'<path d="M18 62 q57 -70 114 0" fill="#3E2E26"/>':''}<circle cx="55" cy="72" r="6" fill="#1F3B44"/><circle cx="95" cy="72" r="6" fill="#1F3B44"/>${brows}${tear}<path d="${mouth}" stroke="#1F3B44" stroke-width="5" fill="none" stroke-linecap="round"/>`;
+}
+function mini(kind){return `<svg viewBox="0 0 150 150" aria-hidden="true">${face(kind,false)}</svg>`}
+$('#leoFace').innerHTML=face('triste');
+
+// voz
+function speak(t){
+  if(!S.voz||!t||!('speechSynthesis' in window))return;
+  try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang='pt-BR';u.rate=.9;speechSynthesis.speak(u);}catch(e){}
+}
+$('#speak').onclick=()=>{const el=$('#'+S.current);speak(el.dataset.say||($('#mapTitle').textContent+' '+$('#mapSub').textContent+' '+$('#mapHint').textContent))};
+
+function show(id){
+  document.querySelectorAll('.screen').forEach(s=>s.hidden=s.id!==id);
+  S.current=id;
+  $('#topbar').hidden=id==='adult';
+  $('#calmBtn').hidden=id==='calma';
+  const sc=$('#'+id); sc.scrollTop=0;
+  try{speechSynthesis.cancel()}catch(e){}
+}
+
+// mapa
+const heroPos=[[70,225],[145,160],[230,102],[296,46]];
+function drawMap(justBuilt){
+  ['b1','b2','b3'].forEach((b,i)=>{const g=$('#'+b);g.classList.toggle('built',i<S.built);g.classList.toggle('just',justBuilt===i+1)});
+  const [x,y]=heroPos[S.built];$('#hero').setAttribute('transform',`translate(${x} ${y})`);
+  const t=[["Olá! Vamos atravessar as pontes?","Cada missão constrói uma ponte. Sem pressa.","Toque em Jogar para começar a primeira missão."],
+           ["Ponte 1 pronta!","Faltam 2 pontes para chegar à casinha.","Toque em Jogar para a próxima missão."],
+           ["Ponte 2 pronta!","Falta só 1 ponte.","Toque em Jogar para a última missão."],
+           ["Você chegou à casinha!","As 3 pontes estão prontas.",""]][S.built];
+  $('#mapTitle').textContent=t[0];$('#mapSub').textContent=t[1];$('#mapHint').textContent=t[2];
+  $('#playBtn').hidden=S.built>=3;$('#mapHint').hidden=S.built>=3;
+}
+$('#playBtn').onclick=()=>{const m=['m1','m2','m3'][S.built];resetMission(m);show(m)};
+
+function resetMission(m){
+  if(m==='m1'){buildChoices('#c1',[['feliz','Feliz'],['triste','Triste'],['bravo','Bravo']],pick1);$('#f1').hidden=true}
+  if(m==='m3'){buildChoices('#c3',[['ask','"Posso brincar com você?"'],['grab','Pegar os blocos sem perguntar'],['look','Ficar olhando um pouco primeiro']],pick3);$('#f3').hidden=true}
+  if(m==='m2'){$('#f2').hidden=true;$('#bubStart').hidden=false;$('#bub').textContent='Toque em começar';$('#bub').classList.remove('in');$('#bubCount').textContent='Vamos fazer 3 vezes.'}
+}
+function buildChoices(sel,items,fn){
+  const box=$(sel);box.innerHTML='';
+  items.forEach(([k,label])=>{const b=document.createElement('button');b.className='choice';b.dataset.k=k;
+    const ico=sel==='#c1'?mini(k):`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">${k==='ask'?'<path d="M4 5h16v10H9l-5 4z"/>':k==='grab'?'<path d="M7 11V6a2 2 0 0 1 4 0v5m0-1V4a2 2 0 0 1 4 0v7m0-2a2 2 0 0 1 4 0v4a7 7 0 0 1-14 0v-2a2 2 0 0 1 4 0"/>':'<circle cx="12" cy="12" r="3"/><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/>'}</svg>`;
+    b.innerHTML=ico+'<span>'+label+'</span>';b.onclick=()=>{box.querySelectorAll('.choice').forEach(c=>c.classList.toggle('picked',c===b));fn(k)};box.appendChild(b)});
+}
+function pick1(k){
+  S.mood={feliz:'Feliz',triste:'Triste',bravo:'Bravo'}[k];
+  const f=$('#f1');f.hidden=false;f.classList.toggle('soft',k!=='triste');
+  $('#f1t').textContent=k==='triste'?'Isso! A boca está para baixo e tem uma lágrima. O Leo está triste. Tudo bem ficar triste.'
+    :k==='bravo'?'Algumas pessoas ficam bravas quando o sorvete cai. Olhe a boca do Leo: ela está para baixo, e tem uma lágrima. Ele está triste.'
+    :'Olhe de novo: a boca do Leo está para baixo e tem uma lágrima. Ele está triste. Tudo bem, a gente aprende olhando.';
+  speak($('#f1t').textContent);f.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+function pick3(k){
+  const f=$('#f3');f.hidden=false;f.classList.toggle('soft',k==='grab');
+  $('#f3t').textContent=k==='ask'?'Ótima ideia! Perguntar é um jeito gentil de entrar na brincadeira.'
+    :k==='look'?'Tudo bem observar primeiro. Quando se sentir pronto, você pode perguntar: "Posso brincar com você?"'
+    :'Se pegar sem perguntar, a Bia pode ficar chateada. Que tal perguntar antes: "Posso brincar com você?"';
+  speak($('#f3t').textContent);f.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+// bolha (missão 2)
+let bubTimer=null;
+$('#bubStart').onclick=()=>{
+  $('#bubStart').hidden=true;let n=0;const b=$('#bub');
+  const cycle=()=>{if(n>=3){b.classList.remove('in');b.textContent='Pronto';$('#bubCount').textContent='3 de 3';$('#f2').hidden=false;$('#f2').scrollIntoView({behavior:'smooth',block:'nearest'});return}
+    b.classList.add('in');b.textContent='Puxe o ar';$('#bubCount').textContent=(n+1)+' de 3';
+    bubTimer=setTimeout(()=>{b.classList.remove('in');b.textContent='Solte devagar';bubTimer=setTimeout(()=>{n++;cycle()},4000)},4000)};
+  cycle();
+};
+
+// concluir missão
+document.querySelectorAll('[data-done]').forEach(btn=>btn.onclick=()=>{
+  const n=+btn.dataset.done; if(S.built<n){S.built=n}
+  show('map');drawMap(n);
+  if(n===3){setTimeout(()=>show('fim'),1700);return}
+  if(n===2&&S.pausa!=='off'&&!S.pauseDone){setTimeout(openPause,1300)}
+});
+$('#again').onclick=()=>{show('map');drawMap()};
+
+// pausa
+function openPause(){
+  S.pauseDone=true;const ob=S.pausa==='obrig';
+  $('#pTitle').textContent=ob?'Hora da pausa':'Que tal uma pausa?';
+  $('#pText').textContent=ob?'Vamos descansar 20 segundos. Olhe pela janela e mexa os braços. Depois o jogo continua.':'Olhe pela janela e mexa os braços. São só 20 segundos.';
+  $('#pSkip').hidden=ob;$('#pStart').hidden=false;$('#pBar').hidden=true;$('#pFill').style.width='0';
+  $('#pause').hidden=false;
+  if(ob)startPause();
+}
+function startPause(){
+  $('#pStart').hidden=true;$('#pSkip').hidden=true;$('#pBar').hidden=false;let s=0;$('#pFill').style.width='0';
+  const iv=setInterval(()=>{s++;$('#pFill').style.width=(s/20*100)+'%';$('#pText').textContent=s<20?`Descansando... faltam ${20-s} segundos.`:'Pronto! Pode voltar a jogar.';
+    if(s>=20){clearInterval(iv);setTimeout(()=>$('#pause').hidden=true,900)}},1000);
+}
+$('#pStart').onclick=startPause;
+$('#pSkip').onclick=()=>$('#pause').hidden=true;
+
+// calma
+let calmT=null,pace=4000;
+function calmLoop(){clearTimeout(calmT);const b=$('#calmBub');if(!pace){b.classList.remove('in');b.textContent='Só respire';return}
+  b.style.transitionDuration=(pace/1000)+'s';b.classList.add('in');b.textContent='Puxe o ar';
+  calmT=setTimeout(()=>{b.classList.remove('in');b.textContent='Solte devagar';calmT=setTimeout(calmLoop,pace)},pace)}
+function setPace(p,btn){pace=p;document.querySelectorAll('.pace button').forEach(x=>x.setAttribute('aria-pressed',x===btn));calmLoop()}
+$('#paceN').onclick=e=>setPace(4000,e.currentTarget);$('#paceS').onclick=e=>setPace(6000,e.currentTarget);$('#paceP').onclick=e=>setPace(0,e.currentTarget);
+$('#calmBtn').onclick=()=>{S.back=S.current==='adult'?'map':S.current;S.calm++;clearTimeout(bubTimer);show('calma');calmLoop()};
+$('#calmBack').onclick=()=>{clearTimeout(calmT);const b=S.back;if(b==='m2'){resetMission('m2')}show(b);if(b==='map')drawMap()};
+
+// PIN
+let pin='';
+const kp=$('#keypad');['1','2','3','4','5','6','7','8','9','','0','⌫'].forEach(k=>{const b=document.createElement('button');b.textContent=k;if(!k){b.style.visibility='hidden'}if(k==='⌫')b.setAttribute('aria-label','Apagar');
+  b.onclick=()=>{if(k==='⌫'){pin=pin.slice(0,-1)}else if(pin.length<4){pin+=k}dots();if(pin.length===4){if(pin==='1234'){setTimeout(()=>{$('#pin').hidden=true;openAdult()},200)}else{$('#pinErr').textContent='PIN errado. Tente de novo.';pin='';setTimeout(dots,300)}}};kp.appendChild(b)});
+function dots(){document.querySelectorAll('.dots i').forEach((d,i)=>d.classList.toggle('on',i<pin.length))}
+$('#lockBtn').onclick=()=>{pin='';dots();$('#pinErr').textContent='';$('#pin').hidden=false};
+$('#pinCancel').onclick=()=>$('#pin').hidden=true;
+
+// adulto
+function openAdult(){S.back=S.current;show('adult');
+  $('#stB').textContent=S.built;$('#stC').textContent=S.calm;$('#stT').textContent=S.tempo;
+  $('#stMood').textContent=S.mood?`Na missão das emoções, escolheu: ${S.mood}.`:'Emoção escolhida na missão: ainda não jogou.'}
+$('#adultBack').onclick=()=>{const b=childScreens.includes(S.back)&&S.back!=='calma'?S.back:'map';show(b);if(b==='map')drawMap()};
+function seg(id,fn){$(id).querySelectorAll('button').forEach(b=>b.onclick=()=>{$(id).querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b));fn(b.dataset.v)})}
+seg('#segTempo',v=>{S.tempo=+v;$('#stT').textContent=v});
+seg('#segPausa',v=>{S.pausa=v;S.pauseDone=false;$('#pausaNote').textContent={off:'Desligada: o jogo não interrompe a criança. O limite de tempo por dia continua valendo.',lembrete:'Lembrete: o jogo sugere uma pausa de 20 segundos, e a criança pode continuar se quiser.',obrig:'Obrigatória: o jogo para por 20 segundos, com aviso e uma barra mostrando quanto falta.'}[v]});
+function sw(id,fn){const b=$(id);b.onclick=()=>{const on=b.getAttribute('aria-checked')!=='true';b.setAttribute('aria-checked',on);fn(on)}}
+sw('#swVoz',on=>{S.voz=on;$('#speak').hidden=!on});
+sw('#swLetra',on=>{S.letra=on;document.body.classList.toggle('big',on)});
+
+drawMap();show('map');
+})();
+</script>
+
+</body>
+</html>
