@@ -1,0 +1,621 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pontes da Mente</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Baloo+2:wght@600;700&display=swap">
+<style>
+/* Layout: one calm phone-sized game screen; on wide screens it sits centered like a device. Single soft-light world on purpose (predictable for autistic children). */
+:root{
+  --sky:#DCEBEA; --sea:#A9CFD0; --sea-deep:#7FB3B6; --land:#CFE0B9; --land-edge:#9DBF8C; --wood:#C8935B;
+  --ink:#1F3B44; --ink-soft:#4E6870; --card:#FBFDFC; --line:#C7DAD9;
+  --sun:#F2C14E; --sun-ink:#4A3510; --calm:#B9B3D9; --calm-ink:#2F2A55; --ok:#5E9B6F; --okbg:#E6F1E8; --softbg:#F3EEDD;
+  --t1:#8FC1A0; --t2:#B9D58E; --t3:#F2D16B; --t4:#F0AD6B; --t5:#E58B7B;
+  --skin:#F2D3B3; --hair:#3E2E26;
+  --display:"Baloo 2","Trebuchet MS",system-ui,sans-serif;
+  --body:"Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --r:22px; color-scheme:light;
+}
+html,body{height:100%}
+body{margin:0;background:var(--sky);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.45;-webkit-tap-highlight-color:transparent}
+body.big{font-size:20px}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,a:focus-visible{outline:3px solid var(--ink);outline-offset:3px}
+h1,h2{font-family:var(--display);font-weight:700;line-height:1.1;margin:0;text-wrap:balance}
+h1{font-size:1.8em} h2{font-size:1.45em}
+p{margin:0}
+
+.app{position:relative;height:100%;max-width:440px;margin:0 auto;display:flex;flex-direction:column;overflow:hidden;background:var(--sky)}
+@media (min-width:700px){
+  body{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding-block:20px}
+  .app{height:min(860px,calc(100% - 50px));width:400px;border-radius:40px;border:10px solid var(--ink);box-shadow:0 20px 60px rgba(31,59,68,.25)}
+  .caption{display:block!important}
+}
+.caption{display:none;color:var(--ink-soft);font-size:13px;text-align:center}
+.caption a{color:var(--ink)}
+
+.top{display:flex;align-items:center;gap:10px;padding:10px max(16px,env(safe-area-inset-right,0px)) 6px max(16px,env(safe-area-inset-left,0px))}
+.top .spacer{flex:1}
+.icon-btn{width:48px;height:48px;border-radius:50%;border:2px solid var(--line);background:var(--card);display:grid;place-items:center;padding:0}
+.icon-btn svg{width:24px;height:24px}
+.calm-btn{height:48px;border-radius:24px;border:0;background:var(--calm);color:var(--calm-ink);font-weight:700;padding:0 16px 0 12px;display:flex;align-items:center;gap:8px}
+.calm-btn svg{width:24px;height:24px}
+.lock{opacity:.55;border-color:transparent;background:transparent}
+
+.screen{flex:1;display:flex;flex-direction:column;min-height:0;overflow-y:auto;padding:6px max(16px,env(safe-area-inset-right,0px)) 20px max(16px,env(safe-area-inset-left,0px));gap:14px}
+
+/* agenda primeiro/depois */
+.agenda{display:flex;gap:6px;align-items:stretch}
+.agenda .slot{flex:1;min-width:0;background:var(--card);border:2px solid var(--line);border-radius:14px;padding:6px 4px;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:.72em;font-weight:700;text-align:center;color:var(--ink-soft)}
+.agenda .slot svg{width:26px;height:26px}
+.agenda .slot.now{border-color:var(--ink);color:var(--ink);background:#FFF8E3}
+.agenda .slot.done{background:var(--okbg);border-color:var(--ok);color:var(--ok)}
+.agenda .slot .tag{font-size:.9em;font-weight:400}
+
+.mapbox{flex:1;min-height:200px;position:relative}
+.mapbox svg{width:100%;height:100%;display:block}
+.plank{fill:var(--wood);stroke:#8E6337;stroke-width:1.5}
+.ghost{fill:none;stroke:var(--sea-deep);stroke-width:2;stroke-dasharray:5 5}
+.bridge.built .ghost{display:none}
+.bridge:not(.built) .plank{display:none}
+.bridge.just .plank{animation:drop .5s backwards}
+.bridge.just .plank:nth-child(3){animation-delay:.1s}.bridge.just .plank:nth-child(4){animation-delay:.2s}.bridge.just .plank:nth-child(5){animation-delay:.3s}.bridge.just .plank:nth-child(6){animation-delay:.4s}
+@keyframes drop{from{transform:translateY(-14px);opacity:0}}
+#hero{transition:transform 1.4s ease-in-out}
+.bob{animation:bob 3s ease-in-out infinite}
+@keyframes bob{50%{transform:translateY(-4px)}}
+
+.play{border:0;border-radius:var(--r);background:var(--sun);color:var(--sun-ink);font-family:var(--display);font-size:1.5em;font-weight:700;padding:14px;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 5px 0 #C99A2E}
+.play:active{transform:translateY(3px);box-shadow:0 2px 0 #C99A2E}
+.play svg{width:28px;height:28px}
+.hint-line{color:var(--ink-soft);font-size:.9em;text-align:center}
+
+/* missões */
+.mhead{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.step{font-size:.82em;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft);font-weight:700}
+.pips{display:flex;gap:6px}
+.pips i{width:12px;height:12px;border-radius:50%;background:var(--line)}
+.pips i.on{background:var(--ink)}
+.scene{background:var(--card);border-radius:var(--r);padding:14px;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center}
+.scene svg{width:150px;height:150px}
+.scene .say{font-size:1.12em;font-weight:700}
+.clue{display:inline-flex;align-items:center;gap:6px;background:var(--sky);border-radius:12px;padding:4px 10px;font-size:.85em;font-weight:700;color:var(--ink-soft)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.choice{display:flex;align-items:center;gap:12px;text-align:left;background:var(--card);border:3px solid var(--line);border-radius:var(--r);padding:10px 14px;font-size:1.05em;font-weight:700;min-height:62px}
+.grid2 .choice{flex-direction:column;justify-content:center;text-align:center;gap:4px;padding:10px 6px}
+.choice svg{width:44px;height:44px;flex:none}
+.grid2 .choice svg{width:56px;height:56px}
+.choice.picked{border-color:var(--ink)}
+.choices{display:grid;gap:10px}
+.helper{background:none;border:2px dashed var(--line);border-radius:14px;padding:8px 12px;color:var(--ink-soft);font-weight:700;align-self:center}
+.feedback{border-radius:var(--r);padding:14px;background:var(--okbg);display:flex;flex-direction:column;gap:12px}
+.feedback.soft{background:var(--softbg)}
+.next{border:0;border-radius:var(--r);background:var(--ink);color:var(--card);font-weight:700;font-size:1.08em;padding:14px}
+.quiet{background:none;border:0;color:var(--ink-soft);text-decoration:underline;padding:8px;align-self:center}
+
+/* termômetro */
+.thermo{display:flex;flex-direction:column-reverse;gap:8px}
+.lvl{display:flex;align-items:center;gap:12px;border:3px solid transparent;border-radius:18px;padding:8px 12px;background:var(--card);font-weight:700;text-align:left}
+.lvl b{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;font-family:var(--display);font-size:1.3em;flex:none;color:var(--ink)}
+.lvl[data-v="1"] b{background:var(--t1)}.lvl[data-v="2"] b{background:var(--t2)}.lvl[data-v="3"] b{background:var(--t3)}.lvl[data-v="4"] b{background:var(--t4)}.lvl[data-v="5"] b{background:var(--t5)}
+.lvl.picked{border-color:var(--ink)}
+.lvl small{display:block;font-weight:400;color:var(--ink-soft)}
+
+/* corpo */
+.m2step{display:flex;flex-direction:column;gap:12px}
+.bodymap{position:relative;width:200px;height:250px;margin:0 auto;flex:none}
+.bodymap svg{width:100%;height:100%}
+.zone{position:absolute;transform:translate(-50%,-50%);border:3px solid var(--ink);background:var(--card);border-radius:20px;padding:4px 10px;font-weight:700;font-size:.85em;white-space:nowrap}
+.zone[aria-pressed="true"]{background:var(--t4)}
+.tools{display:grid;gap:10px}
+
+.bubble-wrap{display:grid;place-items:center;min-height:220px}
+.bubble{width:110px;height:110px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff 0 12%,var(--calm) 60%);display:grid;place-items:center;font-weight:700;color:var(--calm-ink);transition:transform 4s ease-in-out;text-align:center;font-size:1em}
+.bubble.in{transform:scale(1.8)}
+.hands{display:flex;gap:18px;justify-content:center;min-height:150px;align-items:center}
+.hand{width:80px;height:80px;border-radius:50%;background:var(--skin);display:grid;place-items:center;transition:transform 1s ease;border:3px solid #D9B48F}
+.hand.squeeze{transform:scale(.7)}
+.count{color:var(--ink-soft);text-align:center;font-weight:700}
+.finds{display:flex;gap:10px;justify-content:center}
+.finds button{width:64px;height:64px;border-radius:50%;border:3px dashed #6C8FD6;background:var(--card);font-family:var(--display);font-size:1.4em;font-weight:700;color:#3E5FA8}
+.finds button.on{background:#CFDDF7;border-style:solid}
+.compare{display:flex;align-items:center;justify-content:center;gap:14px;font-weight:700}
+.compare b{width:48px;height:48px;border-radius:50%;display:grid;place-items:center;font-family:var(--display);font-size:1.4em}
+
+/* história */
+.page{background:var(--card);border-radius:var(--r);padding:16px;display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center;min-height:260px;justify-content:center}
+.page svg{width:260px;max-width:100%;height:195px}
+.page p{font-size:1.15em;max-width:30ch}
+.page .coach{background:#FFF8E3;border-radius:14px;padding:8px 12px;font-weight:700}
+.storynav{display:flex;gap:10px}
+.storynav button{flex:1}
+.back{border:2px solid var(--ink);background:var(--card);border-radius:var(--r);font-weight:700;padding:12px}
+
+/* calma */
+#calma{background:#E9E6F4}
+.pace{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.pace button{border:2px solid var(--calm);background:var(--card);border-radius:20px;padding:8px 14px;font-weight:700;color:var(--calm-ink)}
+.pace button[aria-pressed="true"]{background:var(--calm)}
+
+/* overlays */
+.overlay{position:absolute;inset:0;background:rgba(31,59,68,.45);display:flex;align-items:flex-end;z-index:20}
+.sheet{background:var(--card);width:100%;border-radius:28px 28px 0 0;padding:22px max(18px,env(safe-area-inset-right,0px)) calc(22px + env(safe-area-inset-bottom,0px)) max(18px,env(safe-area-inset-left,0px));display:flex;flex-direction:column;gap:14px}
+.bar{height:14px;border-radius:7px;background:var(--line);overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--ok);transition:width 1s linear}
+.keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.keypad button{height:56px;border-radius:16px;border:2px solid var(--line);background:var(--sky);font-size:1.3em;font-weight:700}
+.dots{display:flex;gap:12px;justify-content:center}
+.dots i{width:16px;height:16px;border-radius:50%;border:2px solid var(--ink)}
+.dots i.on{background:var(--ink)}
+.err{color:#9B3B2F;text-align:center;min-height:1.4em}
+
+/* adulto */
+#adult{background:#F2F6F6}
+.panel{background:var(--card);border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:10px;border:1px solid var(--line)}
+.panel h3{margin:0;font-size:1.05em}
+.seg{display:flex;flex-wrap:wrap;gap:8px}
+.seg button{flex:1 1 auto;border:2px solid var(--line);background:var(--card);border-radius:14px;padding:10px 12px;font-weight:700;min-width:0}
+.seg button[aria-pressed="true"]{border-color:var(--ink);background:var(--ink);color:var(--card)}
+.note{color:var(--ink-soft);font-size:.9em}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center}
+.stats b{display:block;font-family:var(--display);font-size:1.6em;font-variant-numeric:tabular-nums}
+.stats span{font-size:.8em;color:var(--ink-soft)}
+.toggle{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.switch{width:56px;height:32px;border-radius:16px;border:0;background:var(--line);position:relative;flex:none;padding:0}
+.switch::after{content:"";position:absolute;top:4px;left:4px;width:24px;height:24px;border-radius:50%;background:#fff;transition:left .2s}
+.switch[aria-checked="true"]{background:var(--ok)}
+.switch[aria-checked="true"]::after{left:28px}
+.help{margin:0;padding-left:20px}
+.help li{margin-bottom:6px}
+.link-btn{display:block;text-align:center;border-radius:14px;border:2px solid var(--ink);padding:12px;color:var(--ink);font-weight:700;text-decoration:none}
+
+body.still *,body.still *::before,body.still *::after{animation:none!important;transition-duration:.01ms!important}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition-duration:.01ms!important}}
+</style>
+</head>
+<body>
+
+
+<div class="app" id="app">
+  <div class="top" id="topbar">
+    <button class="icon-btn" id="speak" aria-label="Ouvir">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/></svg>
+    </button>
+    <div class="spacer"></div>
+    <button class="calm-btn" id="calmBtn" aria-label="Estou mal: ir para a calma">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M7 18h10a4 4 0 0 0 .5-8 6 6 0 0 0-11.4 1.5A3.3 3.3 0 0 0 7 18z"/></svg>
+      Calma
+    </button>
+    <button class="icon-btn lock" id="lockBtn" aria-label="Área do adulto">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+    </button>
+  </div>
+
+  <!-- MAPA -->
+  <section class="screen" id="map">
+    <div class="agenda" id="agenda" aria-label="Agenda de hoje"></div>
+    <div><h1 id="mapTitle">Olá! Vamos atravessar as pontes?</h1></div>
+    <div class="mapbox">
+      <svg viewBox="0 0 360 300" aria-label="Mapa com quatro ilhas e três pontes">
+        <rect width="360" height="300" rx="24" fill="var(--sea)"/>
+        <path d="M20 60 q15 -8 30 0 t30 0 M250 250 q15 -8 30 0 t30 0 M150 135 q12 -6 24 0 t24 0" stroke="var(--sea-deep)" stroke-width="3" fill="none" stroke-linecap="round"/>
+        <ellipse cx="62" cy="235" rx="52" ry="34" fill="var(--land)" stroke="var(--land-edge)" stroke-width="3"/>
+        <ellipse cx="145" cy="170" rx="40" ry="26" fill="var(--land)" stroke="var(--land-edge)" stroke-width="3"/>
+        <ellipse cx="230" cy="112" rx="40" ry="26" fill="var(--land)" stroke="var(--land-edge)" stroke-width="3"/>
+        <ellipse cx="300" cy="52" rx="48" ry="30" fill="var(--land)" stroke="var(--land-edge)" stroke-width="3"/>
+        <circle cx="35" cy="220" r="10" fill="var(--land-edge)"/><circle cx="150" cy="158" r="7" fill="var(--land-edge)"/><circle cx="215" cy="102" r="7" fill="var(--land-edge)"/>
+        <g transform="translate(312 22)"><path d="M0 18 L16 4 L32 18 Z" fill="var(--wood)"/><rect x="4" y="18" width="24" height="16" fill="var(--card)" stroke="var(--wood)" stroke-width="2"/><rect x="13" y="24" width="7" height="10" fill="var(--wood)"/></g>
+        <g class="bridge" id="b1" transform="translate(98 214) rotate(-37)"><rect class="ghost" x="0" y="-8" width="40" height="16" rx="3"/><rect class="plank" x="0" y="-8" width="7" height="16"/><rect class="plank" x="8.5" y="-8" width="7" height="16"/><rect class="plank" x="17" y="-8" width="7" height="16"/><rect class="plank" x="25.5" y="-8" width="7" height="16"/><rect class="plank" x="34" y="-8" width="6" height="16"/></g>
+        <g class="bridge" id="b2" transform="translate(180 150) rotate(-34)"><rect class="ghost" x="0" y="-8" width="40" height="16" rx="3"/><rect class="plank" x="0" y="-8" width="7" height="16"/><rect class="plank" x="8.5" y="-8" width="7" height="16"/><rect class="plank" x="17" y="-8" width="7" height="16"/><rect class="plank" x="25.5" y="-8" width="7" height="16"/><rect class="plank" x="34" y="-8" width="6" height="16"/></g>
+        <g class="bridge" id="b3" transform="translate(264 94) rotate(-38)"><rect class="ghost" x="0" y="-8" width="34" height="16" rx="3"/><rect class="plank" x="0" y="-8" width="6" height="16"/><rect class="plank" x="7" y="-8" width="6" height="16"/><rect class="plank" x="14" y="-8" width="6" height="16"/><rect class="plank" x="21" y="-8" width="6" height="16"/><rect class="plank" x="28" y="-8" width="6" height="16"/></g>
+        <g id="hero" transform="translate(70 225)"><g class="bob">
+          <ellipse cx="0" cy="14" rx="14" ry="4" fill="rgba(31,59,68,.18)"/>
+          <circle cx="0" cy="0" r="15" fill="var(--sun)" stroke="#C99A2E" stroke-width="2"/>
+          <circle cx="-5" cy="-3" r="2.2" fill="var(--ink)"/><circle cx="5" cy="-3" r="2.2" fill="var(--ink)"/>
+          <path d="M-5 4 q5 4 10 0" stroke="var(--ink)" stroke-width="2" fill="none" stroke-linecap="round"/>
+          <path d="M-3 -15 q3 -7 7 -3" stroke="var(--ok)" stroke-width="3" fill="none" stroke-linecap="round"/>
+        </g></g>
+      </svg>
+    </div>
+    <button class="play" id="playBtn"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg><span>Jogar</span></button>
+    <p class="hint-line" id="mapHint"></p>
+  </section>
+
+  <!-- MISSÃO 1: emoções em 3 pistas -->
+  <section class="screen" id="m1" hidden>
+    <div class="mhead"><p class="step">Ponte 1 · Emoções</p><div class="pips" id="m1pips"><i></i><i></i><i></i></div></div>
+    <div class="scene">
+      <span class="clue" id="m1clue"></span>
+      <div id="m1art"></div>
+      <p class="say" id="m1say"></p>
+      <p id="m1ask">Como ele está se sentindo?</p>
+    </div>
+    <button class="helper" id="m1help">Me dê uma dica</button>
+    <p class="note" id="m1hint" hidden></p>
+    <div class="grid2" id="m1choices"></div>
+    <div class="feedback" id="m1fb" hidden><p id="m1fbt"></p><button class="next" id="m1next">Próxima pista</button></div>
+  </section>
+
+  <!-- MISSÃO 2: meu corpo avisa -->
+  <section class="screen" id="m2" hidden>
+    <div class="mhead"><p class="step">Ponte 2 · Meu corpo avisa</p><div class="pips" id="m2pips"><i></i><i></i><i></i><i></i></div></div>
+
+    <div id="m2a" class="m2step">
+      <h2>Como está seu corpo agora?</h2>
+      <p class="note">Toque no número que parece com você. Não tem resposta certa.</p>
+      <div class="thermo" id="thermoA"></div>
+    </div>
+
+    <div id="m2b" class="m2step" hidden>
+      <h2>Onde você sente?</h2>
+      <p class="note">Pode tocar em mais de um lugar. Se não souber, tudo bem.</p>
+      <div class="bodymap">
+        <svg viewBox="0 0 200 250" aria-hidden="true">
+          <circle cx="100" cy="40" r="28" fill="var(--skin)"/>
+          <rect x="62" y="74" width="76" height="96" rx="30" fill="var(--sea-deep)"/>
+          <rect x="34" y="80" width="22" height="80" rx="11" fill="var(--sea-deep)"/>
+          <rect x="144" y="80" width="22" height="80" rx="11" fill="var(--sea-deep)"/>
+          <circle cx="45" cy="168" r="12" fill="var(--skin)"/><circle cx="155" cy="168" r="12" fill="var(--skin)"/>
+          <rect x="70" y="166" width="24" height="76" rx="12" fill="var(--ink-soft)"/><rect x="106" y="166" width="24" height="76" rx="12" fill="var(--ink-soft)"/>
+        </svg>
+        <button class="zone" style="left:50%;top:12%" data-z="Cabeça" aria-pressed="false">Cabeça</button>
+        <button class="zone" style="left:50%;top:40%" data-z="Peito" aria-pressed="false">Peito</button>
+        <button class="zone" style="left:50%;top:60%" data-z="Barriga" aria-pressed="false">Barriga</button>
+        <button class="zone" style="left:14%;top:72%" data-z="Mãos" aria-pressed="false">Mãos</button>
+      </div>
+      <button class="next" id="m2bNext">Continuar</button>
+      <button class="quiet" id="m2bSkip">Não sei onde</button>
+    </div>
+
+    <div id="m2c" class="m2step" hidden>
+      <h2>Escolha uma ajuda</h2>
+      <div class="tools">
+        <button class="choice" data-tool="bolha"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="9" cy="9" r="1.5" fill="currentColor"/></svg><span>Respirar com a bolha</span></button>
+        <button class="choice" data-tool="maos"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M7 11V6a2 2 0 0 1 4 0v5m0-1V4a2 2 0 0 1 4 0v7m0-2a2 2 0 0 1 4 0v4a7 7 0 0 1-14 0v-2a2 2 0 0 1 4 0"/></svg><span>Apertar e soltar as mãos</span></button>
+        <button class="choice" data-tool="azul"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/></svg><span>Achar 3 coisas azuis perto de mim</span></button>
+      </div>
+    </div>
+
+    <div id="m2d" class="m2step" hidden>
+      <h2 id="toolTitle"></h2>
+      <p id="toolText"></p>
+      <div id="toolBolha" class="bubble-wrap" hidden><div class="bubble" id="bub">Vamos lá</div></div>
+      <div id="toolMaos" class="hands" hidden><div class="hand" id="h1"></div><div class="hand" id="h2"></div></div>
+      <div id="toolAzul" class="finds" hidden><button>1</button><button>2</button><button>3</button></div>
+      <p class="count" id="toolCount"></p>
+      <button class="next" id="toolDone" hidden>Terminei</button>
+    </div>
+
+    <div id="m2e" class="m2step" hidden>
+      <h2>E agora, como está seu corpo?</h2>
+      <div class="thermo" id="thermoB"></div>
+    </div>
+
+    <div class="feedback" id="m2fb" hidden>
+      <div class="compare"><span>Antes</span><b id="cmpA"></b><span>→</span><b id="cmpB"></b><span>Agora</span></div>
+      <p id="m2fbt"></p>
+      <button class="next" id="m2done">Construir a ponte</button>
+    </div>
+  </section>
+
+  <!-- MISSÃO 3: história social -->
+  <section class="screen" id="m3" hidden>
+    <div class="mhead"><p class="step">Ponte 3 · História: brincar junto</p><div class="pips" id="m3pips"><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+    <div class="page" id="storyPage"><div id="storyArt"></div><p id="storyText"></p></div>
+    <div class="storynav" id="storyNav"><button class="back" id="storyBack">Voltar</button><button class="next" id="storyNext">Próxima</button></div>
+    <div id="practice" hidden>
+      <div class="choices" id="m3choices"></div>
+    </div>
+    <div class="feedback" id="m3fb" hidden><p id="m3fbt"></p><button class="next" id="m3next">Continuar</button></div>
+  </section>
+
+  <!-- FIM -->
+  <section class="screen" id="fim" hidden>
+    <div class="scene" style="margin-top:16px">
+      <svg viewBox="0 0 150 150" aria-hidden="true"><circle cx="75" cy="75" r="50" fill="var(--sun)" stroke="#C99A2E" stroke-width="3"/><circle cx="58" cy="68" r="6" fill="var(--ink)"/><circle cx="92" cy="68" r="6" fill="var(--ink)"/><path d="M55 90 q20 18 40 0" stroke="var(--ink)" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M68 25 q8 -18 20 -8" stroke="var(--ok)" stroke-width="6" fill="none" stroke-linecap="round"/></svg>
+      <h1>Você atravessou as 3 pontes!</h1>
+      <p>Por hoje é só. Agora é hora de descansar.</p>
+      <p><b>Conte para um adulto como foi.</b></p>
+    </div>
+    <button class="next" id="again">Voltar ao mapa</button>
+  </section>
+
+  <!-- CALMA -->
+  <section class="screen" id="calma" hidden>
+    <h2>Está tudo bem.</h2>
+    <p>Respire com a bolha. Pode ficar aqui o tempo que precisar.</p>
+    <div class="bubble-wrap" style="flex:1"><div class="bubble" id="calmBub">Puxe o ar</div></div>
+    <div class="pace" role="group" aria-label="Velocidade da bolha">
+      <button id="paceN" aria-pressed="true">Normal</button>
+      <button id="paceS" aria-pressed="false">Mais devagar</button>
+      <button id="paceP" aria-pressed="false">Parada</button>
+    </div>
+    <button class="next" id="calmBack">Voltar quando eu quiser</button>
+  </section>
+
+  <!-- ADULTO -->
+  <section class="screen" id="adult" hidden>
+    <h2>Área do adulto</h2>
+    <div class="panel">
+      <h3>Hoje</h3>
+      <div class="stats">
+        <div><b id="stB">0</b><span>pontes de 3</span></div>
+        <div><b id="stE">0/3</b><span>emoções reconhecidas</span></div>
+        <div><b id="stC">0</b><span>vezes na calma</span></div>
+      </div>
+      <p class="note" id="stBody">Meu corpo avisa: ainda não jogou.</p>
+      <p class="note">Para conversar depois do jogo: "Onde você sentiu no corpo hoje?" e "O que o Tico fez para brincar com a Bia?"</p>
+    </div>
+    <div class="panel">
+      <h3>Tempo por dia</h3>
+      <div class="seg" id="segTempo"><button data-v="15">15 min</button><button data-v="20" aria-pressed="true">20 min</button><button data-v="30">30 min</button></div>
+    </div>
+    <div class="panel">
+      <h3>Pausa no meio do jogo</h3>
+      <div class="seg" id="segPausa"><button data-v="off">Desligada</button><button data-v="lembrete" aria-pressed="true">Lembrete</button><button data-v="obrig">Obrigatória</button></div>
+      <p class="note" id="pausaNote">Lembrete: o jogo sugere uma pausa de 20 segundos, e a criança pode continuar se quiser.</p>
+    </div>
+    <div class="panel">
+      <div class="toggle"><span>Voz que lê as instruções</span><button class="switch" id="swVoz" role="switch" aria-checked="true" aria-label="Voz"></button></div>
+      <div class="toggle"><span>Letra maior</span><button class="switch" id="swLetra" role="switch" aria-checked="false" aria-label="Letra maior"></button></div>
+      <div class="toggle"><span>Menos movimento na tela</span><button class="switch" id="swStill" role="switch" aria-checked="false" aria-label="Menos movimento"></button></div>
+    </div>
+    <div class="panel">
+      <h3>Privacidade</h3>
+      <p class="note">Nada sai deste aparelho. Não pedimos nome, foto ou localização da criança. Gratuito, sem anúncios, sem chat e sem outros jogadores.</p>
+    </div>
+    <div class="panel">
+      <h3>Onde buscar ajuda</h3>
+      <ul class="help note">
+        <li>CAPSi (Centro de Atenção Psicossocial Infantojuvenil) da sua região.</li>
+        <li>UBS (posto de saúde) mais perto de casa.</li>
+        <li>Emergência: SAMU 192.</li>
+      </ul>
+      <p class="note">Este jogo complementa, e não substitui, o acompanhamento com profissionais.</p>
+    </div>
+    <a class="link-btn" href="https://docs.google.com/forms/d/e/1FAIpQLScUQvhbiZrTYYqaXHi3QZbGgzjgL65Ndl_ddWXfsHKLCGzgLA/viewform" target="_blank" rel="noopener">Avaliar este protótipo (3 min, anônimo)</a>
+    <button class="next" id="adultBack">Voltar ao jogo</button>
+  </section>
+
+  <div class="overlay" id="pin" hidden>
+    <div class="sheet" role="dialog" aria-label="Digite o PIN do adulto">
+      <h2>Só para adultos</h2>
+      <p class="note">Digite o PIN. Para testar, use 1234.</p>
+      <div class="dots"><i></i><i></i><i></i><i></i></div>
+      <p class="err" id="pinErr"></p>
+      <div class="keypad" id="keypad"></div>
+      <button class="quiet" id="pinCancel">Cancelar</button>
+    </div>
+  </div>
+
+  <div class="overlay" id="pause" hidden>
+    <div class="sheet" role="dialog" aria-label="Pausa">
+      <h2 id="pTitle">Que tal uma pausa?</h2>
+      <p id="pText"></p>
+      <div class="bar" id="pBar" hidden><i id="pFill"></i></div>
+      <button class="next" id="pStart">Fazer a pausa</button>
+      <button class="quiet" id="pSkip">Continuar jogando</button>
+    </div>
+  </div>
+</div>
+<p class="caption">Protótipo · Projeto de extensão IESB · <a href="https://docs.google.com/forms/d/e/1FAIpQLScUQvhbiZrTYYqaXHi3QZbGgzjgL65Ndl_ddWXfsHKLCGzgLA/viewform" target="_blank" rel="noopener">avaliar o protótipo</a></p>
+
+<script>
+(function(){
+const $=s=>document.querySelector(s);
+const $$=s=>[...document.querySelectorAll(s)];
+const S={built:0,calm:0,emo:0,before:null,after:null,zones:[],tool:null,pausa:'lembrete',voz:true,pauseDone:false,current:'map',back:'map',say:''};
+const EMO={feliz:'Feliz',triste:'Triste',bravo:'Bravo',medo:'Com medo'};
+
+/* ---------- desenhos ---------- */
+function face(kind,hair=true){
+  const eyes=kind==='medo'?'<circle cx="55" cy="70" r="10" fill="#fff" stroke="#1F3B44" stroke-width="3"/><circle cx="95" cy="70" r="10" fill="#fff" stroke="#1F3B44" stroke-width="3"/><circle cx="55" cy="72" r="4" fill="#1F3B44"/><circle cx="95" cy="72" r="4" fill="#1F3B44"/>'
+    :'<circle cx="55" cy="72" r="6" fill="#1F3B44"/><circle cx="95" cy="72" r="6" fill="#1F3B44"/>';
+  const mouth={feliz:'<path d="M50 98 q25 22 50 0" stroke="#1F3B44" stroke-width="5" fill="none" stroke-linecap="round"/>',
+    triste:'<path d="M50 108 q25 -20 50 0" stroke="#1F3B44" stroke-width="5" fill="none" stroke-linecap="round"/>',
+    bravo:'<path d="M52 104 h46" stroke="#1F3B44" stroke-width="5" stroke-linecap="round"/>',
+    medo:'<ellipse cx="75" cy="106" rx="9" ry="12" fill="#1F3B44"/>'}[kind];
+  const brows={bravo:'<path d="M40 52 l26 10 M110 52 l-26 10" stroke="#1F3B44" stroke-width="5" stroke-linecap="round"/>',
+    triste:'<path d="M42 60 l22 -8 M108 60 l-22 -8" stroke="#1F3B44" stroke-width="4" stroke-linecap="round"/>',
+    medo:'<path d="M42 50 q12 -8 24 -2 M108 50 q-12 -8 -24 -2" stroke="#1F3B44" stroke-width="4" fill="none" stroke-linecap="round"/>'}[kind]||'';
+  const tear=kind==='triste'?'<path d="M56 84 q-4 10 0 14 q4 -4 0 -14z" fill="#7FB3B6"/>':'';
+  return `<circle cx="75" cy="75" r="60" fill="#F2D3B3"/>${hair?'<path d="M18 62 q57 -70 114 0" fill="#3E2E26"/>':''}${eyes}${brows}${tear}${mouth}`;
+}
+const svgFace=(k,h)=>`<svg viewBox="0 0 150 150" aria-hidden="true">${face(k,h)}</svg>`;
+// corpo da Bia pulando de braços para cima (rosto escondido pelo cabelo de costas)
+const bodyJump=`<svg viewBox="0 0 150 150" aria-label="Bia de costas, pulando com os braços para cima"><path d="M30 140 h90" stroke="#9DBF8C" stroke-width="4" stroke-linecap="round"/><g transform="translate(0 -6)"><circle cx="75" cy="40" r="20" fill="#6B4A3A"/><rect x="58" y="60" width="34" height="44" rx="14" fill="#7FB3B6"/><path d="M60 66 L38 30 M90 66 L112 30" stroke="#F2D3B3" stroke-width="10" stroke-linecap="round"/><path d="M66 104 L60 126 M84 104 L90 126" stroke="#4E6870" stroke-width="10" stroke-linecap="round"/></g><path d="M28 30 l8 6 M122 30 l-8 6 M24 52 h10 M126 52 h-10" stroke="#F2C14E" stroke-width="4" stroke-linecap="round"/></svg>`;
+const dogScene=`<svg viewBox="0 0 150 150" aria-label="Um cachorro grande latindo perto do Tico"><circle cx="38" cy="98" r="22" fill="#F2C14E" stroke="#C99A2E" stroke-width="3"/><circle cx="32" cy="94" r="3" fill="#1F3B44"/><circle cx="44" cy="94" r="3" fill="#1F3B44"/><ellipse cx="38" cy="106" rx="4" ry="5" fill="#1F3B44"/><g fill="#8E6337"><ellipse cx="105" cy="98" rx="30" ry="18"/><circle cx="128" cy="74" r="16"/><ellipse cx="120" cy="62" rx="6" ry="10"/><rect x="84" y="108" width="8" height="22" rx="4"/><rect x="114" y="108" width="8" height="22" rx="4"/></g><circle cx="132" cy="72" r="2.5" fill="#1F3B44"/><path d="M68 56 l-10 -6 M70 66 h-12 M68 76 l-10 6" stroke="#1F3B44" stroke-width="3" stroke-linecap="round"/><text x="72" y="42" font-family="Baloo 2,sans-serif" font-size="18" font-weight="700" fill="#1F3B44">AU! AU!</text></svg>`;
+const tico=(mood='feliz',x=0)=>`<g transform="translate(${x} 0)"><circle cx="0" cy="0" r="22" fill="#F2C14E" stroke="#C99A2E" stroke-width="3"/><circle cx="-7" cy="-4" r="3" fill="#1F3B44"/><circle cx="7" cy="-4" r="3" fill="#1F3B44"/>${mood==='feliz'?'<path d="M-7 6 q7 6 14 0" stroke="#1F3B44" stroke-width="3" fill="none" stroke-linecap="round"/>':'<path d="M-6 8 h12" stroke="#1F3B44" stroke-width="3" stroke-linecap="round"/>'}<path d="M-3 -22 q4 -10 10 -4" stroke="#5E9B6F" stroke-width="4" fill="none" stroke-linecap="round"/></g>`;
+const bia=(x=0)=>`<g transform="translate(${x} 0)"><circle cx="0" cy="-4" r="20" fill="#F2D3B3"/><path d="M-20 -8 q20 -30 40 0" fill="#6B4A3A"/><circle cx="-6" cy="-2" r="2.5" fill="#1F3B44"/><circle cx="6" cy="-2" r="2.5" fill="#1F3B44"/><path d="M-6 7 q6 5 12 0" stroke="#1F3B44" stroke-width="2.5" fill="none" stroke-linecap="round"/><rect x="-16" y="16" width="32" height="26" rx="12" fill="#7FB3B6"/></g>`;
+const blocks=`<rect x="0" y="0" width="16" height="16" rx="3" fill="#F2C14E"/><rect x="18" y="0" width="16" height="16" rx="3" fill="#B9B3D9"/><rect x="9" y="-18" width="16" height="16" rx="3" fill="#5E9B6F"/>`;
+
+/* ---------- voz ---------- */
+function speak(t){if(!S.voz||!t||!('speechSynthesis' in window))return;try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang='pt-BR';u.rate=.9;speechSynthesis.speak(u)}catch(e){}}
+function setSay(t){S.say=t}
+$('#speak').onclick=()=>speak(S.say);
+
+function show(id){
+  $$('.screen').forEach(s=>s.hidden=s.id!==id);S.current=id;
+  $('#topbar').hidden=id==='adult';$('#calmBtn').hidden=id==='calma';
+  $('#'+id).scrollTop=0;try{speechSynthesis.cancel()}catch(e){}
+  if(id==='calma')setSay('Está tudo bem. Respire com a bolha. Pode ficar aqui o tempo que precisar.');
+  if(id==='fim')setSay('Você atravessou as três pontes! Por hoje é só. Conte para um adulto como foi.');
+}
+function pips(id,n){$$(id+' i').forEach((p,i)=>p.classList.toggle('on',i<n))}
+
+/* ---------- mapa + agenda ---------- */
+const ICON={emo:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><circle cx="9" cy="10" r="1" fill="currentColor"/><circle cx="15" cy="10" r="1" fill="currentColor"/><path d="M8.5 15q3.5 3 7 0"/></svg>',
+ corpo:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="5" r="2.5"/><path d="M12 8v7M7 10h10M12 15l-3 6M12 15l3 6"/></svg>',
+ hist:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 5h7a2 2 0 0 1 2 2v13a2 2 0 0 0-2-2H3zM21 5h-7a2 2 0 0 0-2 2v13a2 2 0 0 1 2-2h7z"/></svg>',
+ casa:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 11l9-7 9 7v9H3z"/><path d="M10 20v-5h4v5"/></svg>',
+ ok:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M5 12l5 5 9-10"/></svg>'};
+const AG=[['emo','Emoções'],['corpo','Meu corpo'],['hist','História'],['casa','Descansar']];
+function drawMap(justBuilt){
+  $('#agenda').innerHTML=AG.map(([k,l],i)=>{const st=i<S.built?'done':i===S.built?'now':'';const tag=i<S.built?'feito':i===S.built?'agora':i===S.built+1?'depois':'';
+    return `<div class="slot ${st}">${i<S.built?ICON.ok:ICON[k]}<span>${l}</span><span class="tag">${tag}</span></div>`}).join('');
+  ['b1','b2','b3'].forEach((b,i)=>{const g=$('#'+b);g.classList.toggle('built',i<S.built);g.classList.toggle('just',justBuilt===i+1)});
+  const pos=[[70,225],[145,160],[230,102],[296,46]][S.built];$('#hero').setAttribute('transform',`translate(${pos[0]} ${pos[1]})`);
+  const t=[["Olá! Vamos atravessar as pontes?","Primeiro: emoções. Depois: meu corpo. Toque em Jogar."],
+           ["Ponte 1 pronta!","Agora: meu corpo. Depois: a história. Toque em Jogar."],
+           ["Ponte 2 pronta!","Agora: a história. Depois: descansar. Toque em Jogar."],
+           ["Você chegou à casinha!","As 3 pontes estão prontas."]][S.built];
+  $('#mapTitle').textContent=t[0];$('#mapHint').textContent=t[1];$('#playBtn').hidden=S.built>=3;
+  setSay(t[0]+' '+t[1]);
+}
+$('#playBtn').onclick=()=>[startM1,startM2,startM3][S.built]();
+
+/* ---------- MISSÃO 1: emoções em 3 pistas (rosto, corpo, situação) ---------- */
+const ROUNDS=[
+ {clue:'Pista 1: o rosto',art:()=>svgFace('triste',true),say:'O sorvete do Leo caiu no chão.',ask:'Olhe o rosto do Leo. Como ele está se sentindo?',ans:'triste',
+  hint:'Olhe a boca: ela está virada para baixo. E tem uma lágrima no olho.',
+  ok:'Isso! A boca para baixo e a lágrima mostram que o Leo está triste. Tudo bem ficar triste.',
+  other:'Olhe de novo: a boca do Leo está para baixo e tem uma lágrima. Ele está triste.'},
+ {clue:'Pista 2: o corpo',art:()=>bodyJump,say:'A Bia está de costas. Não dá para ver o rosto dela.',ask:'Olhe o corpo da Bia. Como ela está se sentindo?',ans:'feliz',
+  hint:'Olhe os braços: estão para cima. E ela está pulando.',
+  ok:'Isso! Braços para cima e pulando: a Bia está feliz. O corpo também mostra o que a gente sente.',
+  other:'O corpo também dá pistas. Braços para cima e pulando costumam mostrar alegria. A Bia está feliz.'},
+ {clue:'Pista 3: o que aconteceu',art:()=>dogScene,say:'Um cachorro grande latiu bem alto, pertinho do Tico.',ask:'Pense no que aconteceu. Como o Tico pode estar se sentindo?',ans:'medo',
+  hint:'Pense: um barulho alto e de surpresa, de um cachorro grande. Muita gente se assusta.',
+  ok:'Isso! Muita gente fica com medo de um latido alto e de surpresa. O Tico pode se afastar e chamar um adulto.',
+  other:'Pode ser! Mas um latido alto e de surpresa costuma dar medo. O Tico pode se afastar e chamar um adulto.'}];
+let r1=0;
+function startM1(){r1=0;S.emo=0;show('m1');drawRound()}
+function drawRound(){
+  const R=ROUNDS[r1];S.answered=false;pips('#m1pips',r1+1);
+  $('#m1clue').textContent=R.clue;$('#m1art').innerHTML=R.art();$('#m1say').textContent=R.say;$('#m1ask').textContent=R.ask;
+  $('#m1hint').hidden=true;$('#m1hint').textContent=R.hint;$('#m1help').hidden=false;$('#m1fb').hidden=true;
+  const box=$('#m1choices');box.innerHTML='';
+  ['feliz','triste','bravo','medo'].forEach(k=>{const b=document.createElement('button');b.className='choice';b.innerHTML=svgFace(k,false)+`<span>${EMO[k]}</span>`;
+    b.onclick=()=>{box.querySelectorAll('.choice').forEach(c=>c.classList.toggle('picked',c===b));answer1(k)};box.appendChild(b)});
+  setSay(R.say+' '+R.ask+' Feliz, triste, bravo ou com medo?');
+}
+$('#m1help').onclick=()=>{$('#m1hint').hidden=false;$('#m1help').hidden=true;speak(ROUNDS[r1].hint)};
+function answer1(k){
+  const R=ROUNDS[r1],right=k===R.ans;if(!S.answered){S.answered=true;if(right)S.emo++}
+  const fb=$('#m1fb');fb.hidden=false;fb.classList.toggle('soft',!right);
+  $('#m1fbt').textContent=right?R.ok:R.other;$('#m1next').textContent=r1<2?'Próxima pista':'Construir a ponte';
+  speak($('#m1fbt').textContent);fb.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+$('#m1next').onclick=()=>{if(r1<2){r1++;drawRound();$('#m1').scrollTop=0}else finish(1)};
+
+/* ---------- MISSÃO 2: meu corpo avisa ---------- */
+const LV=[[1,'Calmo','Corpo tranquilo, como depois de um banho morno'],[2,'Tranquilo','Tudo bem, um pouco animado'],[3,'Um pouco agitado','Algo está incomodando'],[4,'Agitado','Difícil ficar parado ou pensar'],[5,'Muito agitado','Vontade de gritar, chorar ou fugir']];
+function thermo(sel,fn){const box=$(sel);box.innerHTML='';LV.forEach(([v,t,d])=>{const b=document.createElement('button');b.className='lvl';b.dataset.v=v;b.innerHTML=`<b>${v}</b><span>${t}<small>${d}</small></span>`;b.onclick=()=>{box.querySelectorAll('.lvl').forEach(x=>x.classList.toggle('picked',x===b));setTimeout(()=>fn(v),350)};box.appendChild(b)})}
+function m2step(id,n){$$('#m2 .m2step').forEach(s=>s.hidden=s.id!==id);$('#m2fb').hidden=true;pips('#m2pips',n);$('#m2').scrollTop=0}
+function startM2(){S.before=S.after=null;S.zones=[];S.tool=null;show('m2');m2step('m2a',1);
+  $$('.zone').forEach(z=>z.setAttribute('aria-pressed','false'));
+  thermo('#thermoA',v=>{S.before=v;m2step('m2b',2);setSay('Onde você sente? Cabeça, peito, barriga ou mãos. Pode tocar em mais de um. Se não souber, tudo bem.')});
+  setSay('Como está seu corpo agora? Um é calmo. Cinco é muito agitado. Toque no número que parece com você.')}
+$$('.zone').forEach(z=>z.onclick=()=>z.setAttribute('aria-pressed',z.getAttribute('aria-pressed')!=='true'));
+function toTools(){S.zones=$$('.zone[aria-pressed="true"]').map(z=>z.dataset.z);m2step('m2c',3);setSay('Escolha uma ajuda: respirar com a bolha, apertar e soltar as mãos, ou achar três coisas azuis perto de você.')}
+$('#m2bNext').onclick=toTools;$('#m2bSkip').onclick=toTools;
+let tTimer=[];function clearT(){tTimer.forEach(clearTimeout);tTimer=[]}
+$$('#m2c [data-tool]').forEach(b=>b.onclick=()=>runTool(b.dataset.tool));
+function runTool(t){
+  S.tool=t;clearT();m2step('m2d',3);['toolBolha','toolMaos','toolAzul'].forEach(i=>$('#'+i).hidden=true);$('#toolDone').hidden=true;$('#toolCount').textContent='';
+  const done=()=>{$('#toolDone').hidden=false};
+  if(t==='bolha'){$('#toolTitle').textContent='Respire com a bolha';$('#toolText').textContent='Quando ela crescer, puxe o ar. Quando diminuir, solte devagar.';$('#toolBolha').hidden=false;
+    let n=0;const b=$('#bub');const cyc=()=>{if(n>=3){b.classList.remove('in');b.textContent='Pronto';$('#toolCount').textContent='3 de 3';done();return}
+      b.classList.add('in');b.textContent='Puxe o ar';$('#toolCount').textContent=(n+1)+' de 3';tTimer.push(setTimeout(()=>{b.classList.remove('in');b.textContent='Solte devagar';tTimer.push(setTimeout(()=>{n++;cyc()},4000))},4000))};
+    tTimer.push(setTimeout(cyc,600));setSay($('#toolText').textContent)}
+  if(t==='maos'){$('#toolTitle').textContent='Aperte e solte as mãos';$('#toolText').textContent='Feche as mãos com força, conte até 3, e solte. Sinta as mãos ficando moles.';$('#toolMaos').hidden=false;
+    let n=0;const hs=[$('#h1'),$('#h2')];const cyc=()=>{if(n>=3){hs.forEach(h=>h.classList.remove('squeeze'));$('#toolCount').textContent='Pronto: 3 de 3';done();return}
+      hs.forEach(h=>h.classList.add('squeeze'));$('#toolCount').textContent='Aperte... 1, 2, 3';tTimer.push(setTimeout(()=>{hs.forEach(h=>h.classList.remove('squeeze'));$('#toolCount').textContent='Solte. Mãos moles.';tTimer.push(setTimeout(()=>{n++;cyc()},3000))},3000))};
+    tTimer.push(setTimeout(cyc,600));setSay($('#toolText').textContent)}
+  if(t==='azul'){$('#toolTitle').textContent='Ache 3 coisas azuis';$('#toolText').textContent='Olhe ao seu redor. Cada vez que achar uma coisa azul, toque em um círculo.';$('#toolAzul').hidden=false;
+    const bs=$$('#toolAzul button');bs.forEach(b=>{b.classList.remove('on');b.onclick=()=>{b.classList.add('on');const k=bs.filter(x=>x.classList.contains('on')).length;$('#toolCount').textContent=k+' de 3';if(k===3)done()}});setSay($('#toolText').textContent)}
+}
+$('#toolDone').onclick=()=>{clearT();m2step('m2e',4);thermo('#thermoB',v=>{S.after=v;showM2fb()});setSay('E agora, como está seu corpo? Toque no número.')};
+function showM2fb(){
+  $('#m2e').hidden=true;const fb=$('#m2fb');fb.hidden=false;
+  const col=v=>`var(--t${v})`;$('#cmpA').textContent=S.before;$('#cmpA').style.background=col(S.before);$('#cmpB').textContent=S.after;$('#cmpB').style.background=col(S.after);
+  $('#m2fbt').textContent=S.after<S.before?'Seu corpo ficou mais calmo. Você pode usar essa ajuda outras vezes.':S.after===S.before?(S.after<=2?'Seu corpo continua calmo. Que bom!':'Tudo bem. Às vezes o corpo demora para acalmar. O botão Calma fica sempre aqui em cima.'):'Tudo bem. Às vezes o corpo demora. Se quiser, toque em Calma lá em cima ou chame um adulto.';
+  speak($('#m2fbt').textContent);
+}
+$('#m2done').onclick=()=>finish(2);
+
+/* ---------- MISSÃO 3: história social + prática ---------- */
+const PAGES=[
+ {art:`<svg viewBox="0 0 200 150"><g transform="translate(70 70)">${tico()}</g><g transform="translate(110 100)">${blocks}</g></svg>`,t:'O Tico gosta de brincar com blocos coloridos.'},
+ {art:`<svg viewBox="0 0 200 150"><g transform="translate(60 60)">${bia()}</g><g transform="translate(100 100)">${blocks}</g><g transform="translate(165 80)">${tico('neutro')}</g></svg>`,t:'Na escola, a Bia está brincando com os blocos. O Tico também quer brincar.'},
+ {art:`<svg viewBox="0 0 200 150"><g transform="translate(60 70)">${bia()}</g><g transform="translate(140 70)">${tico()}</g><rect x="96" y="12" width="96" height="34" rx="12" fill="#FFF8E3" stroke="#F2C14E" stroke-width="2"/><text x="144" y="34" text-anchor="middle" font-size="13" font-weight="700" fill="#1F3B44">Posso brincar?</text></svg>`,t:'Muitas crianças perguntam: "Posso brincar com você?"',coach:'O Tico pode tentar perguntar assim.'},
+ {art:`<svg viewBox="0 0 200 150"><g transform="translate(60 70)">${bia()}</g><g transform="translate(140 70)">${tico()}</g><rect x="8" y="10" width="84" height="30" rx="12" fill="#E6F1E8" stroke="#5E9B6F" stroke-width="2"/><text x="50" y="30" text-anchor="middle" font-size="13" font-weight="700" fill="#1F3B44">Sim!</text><rect x="100" y="112" width="92" height="30" rx="12" fill="#F3EEDD" stroke="#C8935B" stroke-width="2"/><text x="146" y="132" text-anchor="middle" font-size="12" font-weight="700" fill="#1F3B44">Agora não</text></svg>`,t:'A Bia pode dizer "sim". Às vezes, ela quer brincar sozinha um pouco e diz "agora não". As duas respostas acontecem, e está tudo bem.'}];
+const PRACTICE=[
+ {q:'Vamos treinar. O Tico quer brincar com a Bia. O que ele pode fazer?',opts:[['a','"Posso brincar com você?"',1,'Isso! Perguntar é um jeito gentil de entrar na brincadeira.'],['b','Pegar os blocos sem perguntar',0,'Se pegar sem perguntar, a Bia pode ficar chateada. Perguntar antes ajuda.'],['c','Ficar olhando um pouco primeiro',1,'Também vale! Observar primeiro ajuda a se sentir pronto. Depois ele pode perguntar.']]},
+ {q:'A Bia disse: "Agora não". O que o Tico pode fazer?',opts:[['a','Brincar de outra coisa e perguntar mais tarde',1,'Boa ideia! Mais tarde a Bia pode querer brincar junto.'],['b','Pegar os blocos mesmo assim',0,'A Bia pediu um tempo. Respeitar ajuda a amizade. O Tico pode brincar de outra coisa e perguntar depois.'],['c','Contar para um adulto como se sentiu',1,'Isso ajuda! Falar com um adulto quando fica chateado é uma ótima escolha.']]}];
+let pg=0,pr=0;
+function startM3(){pg=0;pr=0;show('m3');drawPage()}
+function drawPage(){
+  $('#practice').hidden=true;$('#m3fb').hidden=true;$('#storyPage').hidden=false;$('#storyNav').hidden=false;
+  const P=PAGES[pg];$('#storyArt').innerHTML=P.art;$('#storyText').innerHTML=P.t+(P.coach?`<br><br><span class="coach">${P.coach}</span>`:'');
+  $('#storyBack').style.visibility=pg?'visible':'hidden';$('#storyNext').textContent=pg<PAGES.length-1?'Próxima':'Vamos treinar';
+  pips('#m3pips',pg+1);setSay(P.t+(P.coach?' '+P.coach:''));
+}
+$('#storyNext').onclick=()=>{if(pg<PAGES.length-1){pg++;drawPage()}else{drawPractice()}};
+$('#storyBack').onclick=()=>{if(pg>0){pg--;drawPage()}};
+function drawPractice(){
+  const Q=PRACTICE[pr];$('#storyNav').hidden=true;$('#m3fb').hidden=true;$('#practice').hidden=false;
+  $('#storyArt').innerHTML=pr===0?PAGES[1].art:PAGES[3].art;$('#storyText').textContent=Q.q;pips('#m3pips',5+pr);
+  const box=$('#m3choices');box.innerHTML='';
+  Q.opts.forEach(([k,label,good,fb])=>{const b=document.createElement('button');b.className='choice';b.innerHTML=`<span>${label}</span>`;
+    b.onclick=()=>{box.querySelectorAll('.choice').forEach(c=>c.classList.toggle('picked',c===b));const f=$('#m3fb');f.hidden=false;f.classList.toggle('soft',!good);$('#m3fbt').textContent=fb;$('#m3next').textContent=pr===0?'Continuar':'Construir a ponte';speak(fb);f.scrollIntoView({behavior:'smooth',block:'nearest'})};box.appendChild(b)});
+  setSay(Q.q+' '+Q.opts.map(o=>o[1]).join('. '));$('#m3').scrollTop=0;
+}
+$('#m3next').onclick=()=>{if(pr===0){pr=1;drawPractice()}else finish(3)};
+
+/* ---------- concluir ---------- */
+function finish(n){if(S.built<n)S.built=n;show('map');drawMap(n);
+  if(n===3){setTimeout(()=>show('fim'),1700);return}
+  if(n===2&&S.pausa!=='off'&&!S.pauseDone)setTimeout(openPause,1300)}
+$('#again').onclick=()=>{show('map');drawMap()};
+
+/* ---------- pausa ---------- */
+function openPause(){S.pauseDone=true;const ob=S.pausa==='obrig';
+  $('#pTitle').textContent=ob?'Hora da pausa':'Que tal uma pausa?';
+  $('#pText').textContent=ob?'Vamos descansar 20 segundos. Olhe pela janela e mexa os braços. Depois o jogo continua.':'Olhe pela janela e mexa os braços. São só 20 segundos.';
+  $('#pSkip').hidden=ob;$('#pStart').hidden=false;$('#pBar').hidden=true;$('#pFill').style.width='0';$('#pause').hidden=false;if(ob)startPause()}
+function startPause(){$('#pStart').hidden=true;$('#pSkip').hidden=true;$('#pBar').hidden=false;let s=0;
+  const iv=setInterval(()=>{s++;$('#pFill').style.width=(s/20*100)+'%';$('#pText').textContent=s<20?`Descansando... faltam ${20-s} segundos.`:'Pronto! Pode voltar a jogar.';if(s>=20){clearInterval(iv);setTimeout(()=>$('#pause').hidden=true,900)}},1000)}
+$('#pStart').onclick=startPause;$('#pSkip').onclick=()=>$('#pause').hidden=true;
+
+/* ---------- calma ---------- */
+let calmT=null,pace=4000;
+function calmLoop(){clearTimeout(calmT);const b=$('#calmBub');if(!pace){b.classList.remove('in');b.textContent='Só respire';return}
+  b.style.transitionDuration=(pace/1000)+'s';b.classList.add('in');b.textContent='Puxe o ar';calmT=setTimeout(()=>{b.classList.remove('in');b.textContent='Solte devagar';calmT=setTimeout(calmLoop,pace)},pace)}
+function setPace(p,btn){pace=p;$$('.pace button').forEach(x=>x.setAttribute('aria-pressed',x===btn));calmLoop()}
+$('#paceN').onclick=e=>setPace(4000,e.currentTarget);$('#paceS').onclick=e=>setPace(6000,e.currentTarget);$('#paceP').onclick=e=>setPace(0,e.currentTarget);
+let prevSay='';
+$('#calmBtn').onclick=()=>{S.back=S.current;prevSay=S.say;S.calm++;clearT();show('calma');calmLoop()};
+$('#calmBack').onclick=()=>{clearTimeout(calmT);const b=S.back;show(b);if(b==='map')drawMap();else{S.say=prevSay;if(b==='m2'&&S.tool&&!$('#m2d').hidden)runTool(S.tool)}};
+
+/* ---------- PIN / adulto ---------- */
+let pin='';
+['1','2','3','4','5','6','7','8','9','','0','⌫'].forEach(k=>{const b=document.createElement('button');b.textContent=k;if(!k)b.style.visibility='hidden';if(k==='⌫')b.setAttribute('aria-label','Apagar');
+  b.onclick=()=>{if(k==='⌫')pin=pin.slice(0,-1);else if(pin.length<4)pin+=k;dots();if(pin.length===4){if(pin==='1234'){setTimeout(()=>{$('#pin').hidden=true;openAdult()},200)}else{$('#pinErr').textContent='PIN errado. Tente de novo.';pin='';setTimeout(dots,300)}}};$('#keypad').appendChild(b)});
+function dots(){$$('.dots i').forEach((d,i)=>d.classList.toggle('on',i<pin.length))}
+$('#lockBtn').onclick=()=>{pin='';dots();$('#pinErr').textContent='';$('#pin').hidden=false};
+$('#pinCancel').onclick=()=>$('#pin').hidden=true;
+function openAdult(){S.back=S.current;prevSay=S.say;show('adult');
+  $('#stB').textContent=S.built;$('#stE').textContent=S.emo+'/3';$('#stC').textContent=S.calm;
+  const tn={bolha:'respirar com a bolha',maos:'apertar e soltar as mãos',azul:'achar coisas azuis'};
+  $('#stBody').textContent=S.before?`Meu corpo avisa: começou em ${S.before} e terminou em ${S.after??'—'} (escala de 1 a 5). Sentiu em: ${S.zones.length?S.zones.join(', '):'não soube dizer'}. Ajuda escolhida: ${tn[S.tool]||'—'}.`:'Meu corpo avisa: ainda não jogou.'}
+$('#adultBack').onclick=()=>{const b=['map','m1','m2','m3','fim'].includes(S.back)?S.back:'map';show(b);if(b==='map')drawMap();else S.say=prevSay};
+function seg(id,fn){$$(id+' button').forEach(b=>b.onclick=()=>{$$(id+' button').forEach(x=>x.setAttribute('aria-pressed',x===b));fn(b.dataset.v)})}
+seg('#segTempo',()=>{});
+seg('#segPausa',v=>{S.pausa=v;S.pauseDone=false;$('#pausaNote').textContent={off:'Desligada: o jogo não interrompe a criança. O limite de tempo por dia continua valendo.',lembrete:'Lembrete: o jogo sugere uma pausa de 20 segundos, e a criança pode continuar se quiser.',obrig:'Obrigatória: o jogo para por 20 segundos, com aviso e uma barra mostrando quanto falta.'}[v]});
+function sw(id,fn){const b=$(id);b.onclick=()=>{const on=b.getAttribute('aria-checked')!=='true';b.setAttribute('aria-checked',on);fn(on)}}
+sw('#swVoz',on=>{S.voz=on;$('#speak').hidden=!on});
+sw('#swLetra',on=>document.body.classList.toggle('big',on));
+sw('#swStill',on=>document.body.classList.toggle('still',on));
+
+drawMap();show('map');setSay($('#mapTitle').textContent+' '+$('#mapHint').textContent);
+})();
+</script>
+
+</body>
+</html>
