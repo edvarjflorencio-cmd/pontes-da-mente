@@ -1,8 +1,3 @@
-<!doctype html>
-<html lang="pt-BR">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Pontes da Mente</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -186,9 +181,6 @@ p{margin:0}
 body.still *,body.still *::before,body.still *::after{animation:none!important;transition-duration:.01ms!important}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition-duration:.01ms!important}}
 </style>
-</head>
-<body>
-
 
 <div class="app" id="app">
   <div class="top" id="topbar">
@@ -446,7 +438,41 @@ const bia=(x=0)=>`<g transform="translate(${x} 0)"><circle cx="0" cy="-4" r="20"
 const blocks=`<rect x="0" y="0" width="16" height="16" rx="3" fill="#F2C14E"/><rect x="18" y="0" width="16" height="16" rx="3" fill="#B9B3D9"/><rect x="9" y="-18" width="16" height="16" rx="3" fill="#5E9B6F"/>`;
 
 /* ---------- voz ---------- */
-function speak(t){if(!S.voz||!t||!('speechSynthesis' in window))return;try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang='pt-BR';u.rate=.9;speechSynthesis.speak(u)}catch(e){}}
+/* Voz: escolhe a voz mais natural do aparelho, fala em frases curtas com pausas */
+let VOZ=null;
+function pickVoice(){
+  if(!('speechSynthesis' in window))return null;
+  const vs=speechSynthesis.getVoices().filter(v=>/^pt/i.test(v.lang));
+  if(!vs.length)return null;
+  const score=v=>{const n=(v.name+' '+v.voiceURI).toLowerCase();let x=0;
+    if(/pt[-_]br/i.test(v.lang))x+=50;
+    if(/natural|neural|online|premium|enhanced|aprimorad/.test(n))x+=100;
+    if(/francisca|antonio|thalita|google/.test(n))x+=40;
+    if(/luciana|fernanda|felipe|joana/.test(n))x+=30;
+    if(/compact|espeak|robot/.test(n))x-=80;
+    if(!v.localService)x+=10;
+    return x};
+  return vs.sort((a,b)=>score(b)-score(a))[0];
+}
+if('speechSynthesis' in window){speechSynthesis.onvoiceschanged=()=>{VOZ=pickVoice()};VOZ=pickVoice()}
+function speak(t){
+  if(!S.voz||!t||!('speechSynthesis' in window))return;
+  try{
+    speechSynthesis.cancel();
+    if(!VOZ)VOZ=pickVoice();
+    const clean=String(t).replace(/\s+/g,' ').replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu,'').trim();
+    const parts=clean.match(/[^.!?…]+[.!?…]*/g)||[clean];
+    parts.forEach((raw,i)=>{
+      const txt=raw.trim();if(!txt)return;
+      const u=new SpeechSynthesisUtterance(txt);
+      u.lang='pt-BR';if(VOZ)u.voice=VOZ;
+      const q=/\?\s*$/.test(txt),ex=/!\s*$/.test(txt);
+      u.rate=q?.95:.92;
+      u.pitch=q?1.12:(ex?1.08:1.04);
+      speechSynthesis.speak(u);
+    });
+  }catch(e){}
+}
 function setSay(t){S.say=t}
 $('#speak').onclick=()=>speak(S.say);
 
@@ -628,6 +654,3 @@ $('#fimTico').src=IMG.tico;
 drawMap();show('map');setSay($('#mapTitle').textContent+' '+$('#mapHint').textContent);
 })();
 </script>
-
-</body>
-</html>
