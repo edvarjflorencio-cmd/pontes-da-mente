@@ -1,0 +1,592 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pontes da Mente - Protótipo</title>
+<style>
+  :root{
+    --bg:#EEF1EC; --card:#FFFFFF; --ink:#2F3B3A; --muted:#6B7A78;
+    --calm:#7FA7A0; --calm-d:#5E8A83; --sand:#E9E2D3; --soft:#DCE8E4; --warn:#C9A66B;
+    --r:18px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:#D8DED9;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--ink);
+       display:flex;gap:32px;justify-content:center;align-items:flex-start;padding:24px;flex-wrap:wrap}
+  .phone{width:360px;height:740px;background:var(--bg);border-radius:36px;border:10px solid #35403F;overflow:hidden;position:relative;
+         box-shadow:0 10px 30px rgba(0,0,0,.18)}
+  .topbar{height:56px;display:flex;align-items:center;justify-content:space-between;padding:0 14px;background:var(--card);border-bottom:1px solid #E3E8E5}
+  .topbar b{font-size:15px}
+  .pausebtn{background:var(--sand);border:0;border-radius:999px;padding:8px 14px;font-size:14px;color:var(--ink);cursor:pointer}
+  .back{background:none;border:0;font-size:20px;cursor:pointer;color:var(--ink);padding:6px 10px}
+  .screen{position:absolute;top:56px;bottom:0;left:0;right:0;padding:18px 18px 70px;overflow:auto;opacity:0;pointer-events:none;
+          transition:opacity 1.2s ease}
+  .screen.on{opacity:1;pointer-events:auto}
+  h1{font-size:22px;margin:4px 0 8px} h2{font-size:18px;margin:4px 0 8px}
+  p{line-height:1.45;margin:6px 0;font-size:15px}
+  .muted{color:var(--muted);font-size:13px}
+  .btn{display:block;width:100%;text-align:left;background:var(--card);border:2px solid var(--soft);border-radius:var(--r);
+       padding:14px;margin:10px 0;font-size:16px;cursor:pointer;color:var(--ink);transition:background .6s,border-color .6s}
+  .btn:hover,.btn:focus{background:var(--soft);border-color:var(--calm);outline:none}
+  .btn.primary{background:var(--calm);color:#fff;border-color:var(--calm);text-align:center}
+  .btn.primary:hover{background:var(--calm-d)}
+  .row{display:flex;gap:10px}
+  .row .btn{text-align:center}
+  .path{position:relative;margin:14px 0;padding-left:30px}
+  .path:before{content:"";position:absolute;left:12px;top:8px;bottom:8px;width:4px;background:var(--soft);border-radius:4px}
+  .node{position:relative;background:var(--card);border-radius:var(--r);padding:12px 14px;margin:12px 0;border:2px solid var(--soft);cursor:pointer}
+  .node:before{content:"";position:absolute;left:-26px;top:50%;transform:translateY(-50%);width:16px;height:16px;border-radius:50%;background:var(--calm)}
+  .node.locked{opacity:.55;cursor:default}.node.locked:before{background:#B8C2BF}
+  .face{font-size:64px;text-align:center;margin:10px 0}
+  .opts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .opts .btn{text-align:center;margin:0}
+  .step{display:flex;gap:10px;align-items:flex-start;margin:10px 0}
+  .step i{flex:0 0 28px;height:28px;border-radius:50%;background:var(--soft);display:flex;align-items:center;justify-content:center;font-style:normal;font-weight:600}
+  .bubble{width:150px;height:150px;border-radius:50%;background:var(--soft);margin:18px auto;display:flex;align-items:center;justify-content:center;
+          font-size:18px;animation:breathe var(--pace,8s) ease-in-out infinite}
+  body.nomove .bubble,body.nomove .breathing,body.nomove .butterfly,body.nomove .sleep{animation:none}
+  @keyframes breathe{0%,100%{transform:scale(.8)}50%{transform:scale(1.15)}}
+  .toggle{display:flex;justify-content:space-between;align-items:center;background:var(--card);border-radius:var(--r);padding:12px 14px;margin:8px 0}
+  .toggle input[type=checkbox]{width:22px;height:22px}
+  select{font-size:15px;padding:6px;border-radius:10px;border:1px solid #C9D3D0}
+  .bar{height:12px;background:var(--soft);border-radius:8px;overflow:hidden;margin:6px 0 12px}
+  .bar span{display:block;height:100%;background:var(--calm)}
+  .tag{display:inline-block;background:var(--sand);border-radius:999px;padding:4px 10px;font-size:12px;margin-right:6px}
+  .feedback{min-height:44px;background:var(--soft);border-radius:var(--r);padding:10px 12px;margin-top:12px;font-size:15px}
+  .legend{width:340px;background:#fff;border-radius:16px;padding:18px;box-shadow:0 6px 18px rgba(0,0,0,.1)}
+  .legend h3{margin:0 0 6px;font-size:17px}
+  .legend ol{padding-left:20px;margin:8px 0}
+  .legend li{margin:4px 0;font-size:14px;cursor:pointer}
+  .legend li.active{font-weight:700;color:var(--calm-d)}
+  .legend .why{background:var(--sand);border-radius:12px;padding:10px;font-size:13px;margin-top:10px}
+  .lock{position:absolute;inset:56px 0 0 0;background:rgba(238,241,236,.97);display:none;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;z-index:5}
+  .lock.on{display:flex}
+  .help{background:var(--sand);border-radius:var(--r);padding:12px;margin:10px 0;font-size:14px}
+  details{background:var(--card);border-radius:var(--r);padding:10px 14px;margin:10px 0;font-size:14px}
+  summary{cursor:pointer;font-weight:600}
+  .avatars{display:flex;gap:10px;margin:8px 0}
+  .avatars button{width:54px;height:54px;font-size:28px;background:var(--card);border:2px solid var(--soft);border-radius:50%;cursor:pointer}
+  .avatars button.sel{border-color:var(--calm-d);background:var(--soft)}
+  .sleep{display:inline-block;animation:breathe 8s ease-in-out infinite}
+  .body{text-align:center;color:var(--muted);font-size:14px;margin:-4px 0 8px}
+  .scene{text-align:center;font-size:44px;margin:10px 0;min-height:60px}
+  .breathing{display:inline-block;animation:breathe 6s ease-in-out infinite}
+  textarea{width:100%;min-height:64px;border-radius:12px;border:1px solid #C9D3D0;padding:8px;font-family:inherit;font-size:14px}
+  input[type=text]{width:100%;padding:10px;border-radius:12px;border:1px solid #C9D3D0;font-size:15px}
+  .listen{background:none;border:0;cursor:pointer;font-size:14px;color:var(--calm-d);padding:4px 0}
+  .map{width:100%;height:auto;display:block;margin:6px 0 4px;border-radius:16px;background:#DCE8E4}
+  .map g[data-go]{cursor:pointer}
+  .moods{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}
+  .moods .btn{text-align:center;margin:0;font-size:15px}
+  .moods .btn span{display:block;font-size:34px}
+  .chip{display:inline-block;background:var(--card);border-radius:999px;padding:4px 10px;font-size:13px;margin:2px 4px 2px 0}
+  .dots{display:flex;gap:6px;justify-content:center;margin:4px 0 8px}
+  .dots i{width:10px;height:10px;border-radius:50%;background:#C9D3D0}
+  .dots i.on{background:var(--calm-d)}
+  .story{text-align:center;font-size:15px;margin:4px 0}
+  .tabs{display:flex;gap:6px;margin:10px 0}
+  .tabs button{flex:1;background:var(--card);border:2px solid var(--soft);border-radius:12px;padding:8px 4px;font-size:13px;cursor:pointer}
+  .tabs button.sel{border-color:var(--calm-d);background:var(--soft)}
+  .stones{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:12px 0}
+  .stone{height:78px;border-radius:18px;background:var(--card);border:2px dashed #C9D3D0;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:12px;color:var(--muted);text-align:center;padding:4px}
+  .stone.got{border:2px solid var(--calm);color:var(--ink)}
+  .stone.got b{font-size:28px}
+  .butterfly{display:inline-block;font-size:56px;animation:tap 2.4s ease-in-out infinite}
+  @keyframes tap{0%,100%{transform:rotate(-6deg)}50%{transform:rotate(6deg)}}
+  .intens{display:flex;gap:8px;margin-top:8px}
+  .intens .btn{margin:0;text-align:center;font-size:14px;padding:10px 6px}
+  #mandOverlay{background:var(--bg);z-index:9}
+  .gate{background:var(--card);border-radius:var(--r);padding:14px;margin:10px 0;text-align:center}
+  .hold{background:var(--sand);border:0;border-radius:var(--r);padding:16px;width:100%;font-size:16px;cursor:pointer;position:relative;overflow:hidden}
+  .hold span{position:absolute;left:0;top:0;bottom:0;width:0;background:rgba(127,167,160,.45);transition:width 3s linear}
+  .hold.on span{width:100%}
+  .next{background:var(--soft);border-radius:999px;padding:6px 12px;font-size:13px;display:inline-block;margin:4px 0}
+  body.big .phone{font-size:18px} body.big .phone p{font-size:17px} body.big .phone .btn{font-size:18px}
+  body.fast .screen{transition:opacity .3s ease}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 10px}
+  .chips span{background:var(--soft);border-radius:999px;padding:5px 11px;font-size:13px;font-weight:600;color:var(--calm-d)}
+  .sos{position:absolute;left:14px;right:14px;bottom:12px;z-index:4;background:var(--sand);border:2px solid var(--calm);border-radius:999px;padding:12px;font-size:15px;cursor:pointer;color:var(--ink);display:none}
+  .sos.on{display:block}
+  .pbar{width:200px;height:10px;background:var(--soft);border-radius:8px;overflow:hidden;margin:6px auto}
+  .pbar span{display:block;height:100%;width:0;background:var(--calm)}
+  .warn{background:var(--sand);border-radius:12px;padding:8px 12px;font-size:13px;margin:6px 0}
+  .pin{display:flex;gap:8px;justify-content:center;margin:10px 0}
+  .pin input{width:46px;height:54px;text-align:center;font-size:22px;border-radius:12px;border:2px solid var(--soft)}
+  #pinOverlay{background:var(--bg);z-index:10}
+  .code{font-family:ui-monospace,monospace;font-size:18px;background:var(--card);border-radius:12px;padding:10px;text-align:center;letter-spacing:1px;margin:8px 0}
+  .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+  @media (prefers-reduced-motion: reduce){.screen{transition:none}.bubble{animation:none}}
+</style>
+</head>
+<body>
+
+<div class="phone" id="phone">
+  <div class="topbar">
+    <button class="back" id="backBtn" aria-label="Voltar">←</button>
+    <b>Pontes da Mente</b>
+    <button class="pausebtn" id="pauseBtn">⏸ Pausa</button>
+  </div>
+
+  <button class="sos" id="sosBtn" data-go="s5">🌿 Estou mal agora: ir para a calma</button>
+
+  <!-- 1 Boas-vindas -->
+  <section class="screen on" id="s1">
+    <h1>Olá! 🌉</h1>
+    <p>Aqui você atravessa pontes, uma de cada vez. Sem pressa. Você pode parar quando quiser.</p>
+    <div class="chips"><span>Gratuito</span><span>Sem anúncios</span><span>Sem chat</span><span>Sem outros jogadores</span></div>
+    <button class="listen" id="listenBtn">🔈 Ouvir esta tela (voz suave, opcional)</button>
+    <p id="listenMsg" class="muted" style="display:none">(Simulação) Uma voz humana calma leria o texto em voz baixa.</p>
+    <p class="muted">Quem vai usar o app agora?</p>
+    <button class="btn" data-go="s9">🧒 Sou criança</button>
+    <button class="btn" data-go="s6">👪 Sou responsável</button>
+    <button class="btn" data-go="s7">🩺 Sou profissional</button>
+    <details>
+      <summary>🔒 Como cuidamos dos seus dados</summary>
+      <p>Não pedimos nome, foto ou localização da criança.</p>
+      <p>O que a criança faz no jogo fica no aparelho. Só vai para um profissional se o responsável deixar.</p>
+      <p>O Pontes da Mente ajuda, mas não substitui o cuidado de profissionais e do CAPSi.</p>
+    </details>
+    <button class="btn" data-go="s8">🧭 Onde buscar ajuda</button>
+    <p class="muted">Sem pedir nome, foto ou dados da criança.</p>
+  </section>
+
+  <!-- 2 Início da criança -->
+  <section class="screen" id="s2">
+    <h2>Meu caminho</h2>
+    <p class="muted">Hoje: 1 missão por vez. Depois, uma pausa.</p>
+    <span class="next">⏸ Próxima pausa em 8 min · Tempo de hoje: 20 min</span>
+    <p class="muted">Escolha seu personagem:</p>
+    <div class="avatars" id="avatars">
+      <button class="sel" data-av="🐢" aria-label="Tartaruga">🐢</button>
+      <button data-av="🦊" aria-label="Raposa">🦊</button>
+      <button data-av="🐙" aria-label="Polvo">🐙</button>
+      <button data-av="🐼" aria-label="Panda">🐼</button>
+    </div>
+    <p>Você é: <b id="avName">🐢</b> <span class="chip" id="moodChip" style="display:none"></span></p>
+    <svg class="map" viewBox="0 0 320 200" role="img" aria-label="Mapa de ilhas ligadas por pontes">
+      <rect x="0" y="0" width="320" height="200" fill="#CFE0DC"/>
+      <path d="M0 120 C 60 100, 120 150, 180 120 S 280 90, 320 110 L320 200 L0 200 Z" fill="#B9D3CD"/>
+      <ellipse cx="45" cy="60" rx="38" ry="24" fill="#E9E2D3"/><text x="45" y="66" font-size="22" text-anchor="middle" id="mapAvatar">🐢</text>
+      <g data-go="s3"><line x1="83" y1="62" x2="117" y2="62" stroke="#7FA7A0" stroke-width="6" stroke-linecap="round"/><ellipse cx="155" cy="60" rx="38" ry="24" fill="#E9E2D3"/><text x="155" y="58" font-size="16" text-anchor="middle">🎭</text><text x="155" y="76" font-size="9" text-anchor="middle" fill="#2F3B3A">Sentimentos</text></g>
+      <g data-go="s4"><line x1="193" y1="62" x2="227" y2="62" stroke="#7FA7A0" stroke-width="6" stroke-linecap="round"/><ellipse cx="265" cy="60" rx="38" ry="24" fill="#E9E2D3"/><text x="265" y="58" font-size="16" text-anchor="middle">🤝</text><text x="265" y="76" font-size="9" text-anchor="middle" fill="#2F3B3A">Brincar junto</text></g>
+      <line x1="265" y1="86" x2="230" y2="128" stroke="#B8C2BF" stroke-width="6" stroke-linecap="round" stroke-dasharray="4 6"/>
+      <ellipse cx="205" cy="150" rx="40" ry="24" fill="#E3E6E1"/><text x="205" y="148" font-size="16" text-anchor="middle">😴</text><text x="205" y="166" font-size="9" text-anchor="middle" fill="#6B7A78">Esperar a vez</text>
+      <line x1="165" y1="150" x2="128" y2="150" stroke="#B8C2BF" stroke-width="6" stroke-linecap="round" stroke-dasharray="4 6"/>
+      <ellipse cx="88" cy="150" rx="40" ry="24" fill="#E3E6E1"/><text x="88" y="148" font-size="16" text-anchor="middle">🎧</text><text x="88" y="166" font-size="9" text-anchor="middle" fill="#6B7A78">Barulho incomoda</text>
+    </svg>
+    <p class="muted" style="text-align:center">Toque numa ilha acordada para atravessar a ponte.</p>
+    <div class="path">
+      <div class="node" data-go="s3"><b>Ponte 1 · Sentimentos</b><br><span class="muted">Descobrir como o personagem se sente (3 min)</span></div>
+      <div class="node" data-go="s4"><b>Ponte 2 · Brincar junto</b><br><span class="muted">Pedir para brincar, passo a passo (4 min)</span></div>
+      <div class="node locked"><b>Ponte 3 · Esperar a vez</b> <span class="sleep">😴</span><br><span class="muted">A ponte está dormindo. Ela acorda amanhã. Sem pressa.</span></div>
+      <div class="node" data-go="s5"><b>Ponte 4 · Quando o barulho incomoda</b><br><span class="muted">Sempre acordada: fone, lugar calmo ou pedir ajuda.</span></div>
+    </div>
+    <div class="row"><button class="btn" data-go="s5">🌿 Calma</button><button class="btn" data-go="s10">📔 Meu diário</button></div>
+  </section>
+
+  <!-- 3 Emoções -->
+  <section class="screen" id="s3">
+    <div class="dots" id="emoDots"><i class="on"></i><i></i><i></i></div>
+    <p class="muted" style="text-align:center" id="emoStep">Situação 1 de 3</p>
+    <h2 id="emoQ">Como o Leo está se sentindo?</h2>
+    <div class="face" id="leoFace" aria-label="Rosto do personagem">😞</div>
+    <p class="body" id="leoPose">Leo está parado, de cabeça baixa, olhando o brinquedo no chão.</p>
+    <p class="story" id="emoStory">O Leo deixou o brinquedo cair e ele quebrou.</p>
+    <button class="listen" id="hintBtn">💡 Quero uma dica</button>
+    <p class="body" id="leoBody"></p>
+    <div class="opts">
+      <button class="btn" data-emo="triste">😢 Triste</button>
+      <button class="btn" data-emo="bravo">😠 Bravo</button>
+      <button class="btn" data-emo="feliz">😊 Feliz</button>
+      <button class="btn" data-emo="assustado">😨 Assustado</button>
+    </div>
+    <div class="feedback" id="emoFb" aria-live="polite">Escolha uma opção. Não existe resposta com pressa.</div>
+    <div id="intensBox" style="display:none">
+      <p style="margin-top:10px"><b>E esse sentimento é…</b></p>
+      <div class="intens"><button class="btn" data-int="pequeno">🌱 pequeno</button><button class="btn" data-int="médio">🌿 médio</button><button class="btn" data-int="grande">🌳 grande</button></div>
+    </div>
+    <button class="btn" id="nextEmo" style="display:none">Próxima situação →</button>
+    <button class="btn primary" data-done="1" id="doneEmo" style="display:none">✔ Terminei a Ponte 1</button>
+    <button class="btn" data-go="s2">Voltar ao caminho</button>
+  </section>
+
+  <!-- 4 Social -->
+  <section class="screen" id="s4">
+    <h2>Pedir para brincar</h2>
+    <p class="muted">Veja os passos antes de começar. Você pode desfazer.</p>
+    <div class="warn">⏸ Depois desta ponte vem uma pausa de 20 segundos.</div>
+    <div class="step"><i>1</i><p>Chegue perto e espere o amigo olhar para você.</p></div>
+    <div class="step"><i>2</i><p>Diga: “Posso brincar com você?”</p></div>
+    <div class="step"><i>3</i><p>Se ele disser sim, ótimo. Se disser não, tudo bem: você pode escolher outra brincadeira.</p></div>
+    <p><b>A Nina está brincando de blocos. Qual é um bom jeito de entrar na brincadeira?</b></p>
+    <button class="btn" data-way="ok">🙋 Chegar perto e perguntar</button>
+    <button class="btn" data-way="pegar">✋ Pegar um bloco sem pedir</button>
+    <button class="btn" data-way="longe">👀 Ficar longe só olhando</button>
+    <div class="feedback" aria-live="polite" id="wayFb">Pense com calma. Todas as escolhas têm uma explicação.</div>
+    <p><b>Qual frase você quer usar?</b></p>
+    <button class="btn" data-say="Posso brincar com você?">💬 “Posso brincar com você?”</button>
+    <button class="btn" data-say="Quero brincar também, pode ser?">💬 “Quero brincar também, pode ser?”</button>
+    <button class="btn" data-say="Posso usar um bloco também?">💬 “Posso usar um bloco também?”</button>
+    <button class="btn" data-say="Posso só ficar olhando um pouco?">💬 “Posso só ficar olhando um pouco?”</button>
+    <div class="feedback" aria-live="polite" id="sayFb">Nenhuma frase escolhida ainda.</div>
+    <p class="muted">E se o amigo disser “agora não”? Veja como o personagem faz:</p>
+    <button class="btn" id="noBtn">👀 Ver o que acontece se ele disser não</button>
+    <button class="btn" id="silBtn">🤔 E se ele não responder?</button>
+    <div class="scene" id="scene"></div>
+    <button class="btn primary" data-done="2">✔ Terminei esta ponte</button>
+    <div class="row"><button class="btn" id="undoSay">↩ Desfazer</button><button class="btn" data-go="s2">Sair</button></div>
+  </section>
+
+  <!-- 5 Pausa -->
+  <section class="screen" id="s5">
+    <h2>Momento de calma</h2>
+    <p class="muted" style="text-align:center">Escolha o que ajuda você agora:</p>
+    <div class="tabs" id="calmTabs">
+      <button class="sel" data-tool="flor">🪷 Flor</button>
+      <button data-tool="olhar">👀 Olhar ao redor</button>
+      <button data-tool="borboleta">🦋 Borboleta</button>
+    </div>
+    <div id="calmTool">
+      <p style="text-align:center">Respire com a flor. Ela abre, você enche o peito. Ela fecha, você solta o ar.</p>
+      <div class="bubble" id="bubble"><span style="font-size:56px">🪷</span></div>
+    </div>
+    <div class="tabs" id="paceTabs"><button class="sel" data-pace="8">Ritmo normal</button><button data-pace="12">Mais devagar</button><button data-pace="0">Sem movimento</button></div>
+    <p class="muted" style="text-align:center">Se o ritmo atrapalhar, escolha outro. Você manda.</p>
+    <p class="muted" style="text-align:center">Som ambiente suave: <b id="sndState">ligado</b></p>
+    <div class="row"><button class="btn" id="sndBtn">🔈 Som</button><button class="btn primary" data-go="s2">Estou pronto</button></div>
+    <p class="muted" style="text-align:center">Pode ficar o tempo que precisar.</p>
+  </section>
+
+  <!-- 6 Responsável -->
+  <section class="screen" id="s6">
+    <h2>Painel do responsável</h2>
+    <div class="gate" id="gate">
+      <p><b>Área para adultos</b></p>
+      <p class="muted">Segure o botão por 3 segundos para entrar.</p>
+      <button class="hold" id="holdBtn"><span></span><b style="position:relative">Segure aqui</b></button>
+    </div>
+    <div id="adult" style="display:none">
+    <p class="muted">Ajuste o app para a sensibilidade da criança.</p>
+    <div class="toggle"><span>🔈 Som ambiente suave</span><input type="checkbox" checked></div>
+    <div class="toggle"><span>🎨 Cores neutras (recomendado)</span><input type="checkbox" checked></div>
+    <div class="toggle"><span>🐢 Transições lentas</span><input type="checkbox" id="slowT" checked></div>
+    <div class="toggle"><span>🔠 Texto maior</span><input type="checkbox" id="bigT"></div>
+    <div class="toggle"><span>⏱ Tempo máximo por dia</span>
+      <select><option>15 min</option><option selected>20 min</option><option>30 min</option></select></div>
+    <div class="toggle"><span>⏸ Pausa obrigatória a cada</span>
+      <select><option>5 min</option><option selected>8 min</option><option>10 min</option></select></div>
+    <h2 style="margin-top:14px">Privacidade (LGPD)</h2>
+    <div class="toggle"><span>Compartilhar progresso com o profissional</span><input type="checkbox" id="consent"></div>
+    <p class="muted">Desligado por padrão. Só você decide. Não guardamos nome, foto ou localização da criança.</p>
+    <h2 style="margin-top:14px">Backup do perfil (sem nuvem)</h2>
+    <p class="muted">Se trocar de aparelho, você leva as pontes da criança com um código. O código não tem nome nem dados da criança.</p>
+    <button class="btn" id="bkBtn">🔑 Gerar código de backup</button>
+    <div class="code" id="bkCode" style="display:none"></div>
+    <p class="muted" id="bkMsg" style="display:none">(Simulação) Guarde o código. No aparelho novo, digite o código em “Recuperar pontes”.</p>
+    <h2 style="margin-top:14px">Dicas de mediação</h2>
+    <div class="help">
+      <p><b>Depois do jogo, converse 2 minutos:</b></p>
+      <p>• “Qual missão você mais gostou?”<br>• “Quando o Leo ficou triste, o que ele fez?”<br>• “Quer usar essa frase com um amigo amanhã?”</p>
+      <p class="muted">Não force a conversa. Se a criança não quiser falar, tudo bem.</p>
+    </div>
+    </div>
+    <button class="btn" data-go="s1">← Trocar perfil</button>
+  </section>
+
+  <!-- 7 Profissional -->
+  <section class="screen" id="s7">
+    <h2>Painel do profissional</h2>
+    <p class="muted">Resumo de apoio. Não substitui sua avaliação clínica.</p>
+    <div class="toggle"><span>Paciente: código C-017</span><span class="tag" id="consentTag">sem consentimento</span></div>
+    <div id="proData">
+      <p><b>Reconhecer emoções</b></p><div class="bar"><span style="width:70%"></span></div>
+      <p><b>Situações sociais</b></p><div class="bar"><span style="width:45%"></span></div>
+      <p><b>Uso da semana</b></p><div class="bar"><span style="width:60%"></span></div>
+      <p class="muted">Pausas usadas: 9 · Sessões: 5 · Tempo médio: 12 min</p>
+      <p><b>Anotações do profissional</b></p>
+      <textarea placeholder="Espaço para suas anotações (entra no PDF)"></textarea>
+      <button class="btn" id="pdfBtn">📄 Exportar PDF para o prontuário</button>
+      <p class="muted" id="pdfMsg" style="display:none">(Simulação) Um PDF seria gerado com o resumo e o campo de anotações, para anexar ao prontuário.</p>
+    </div>
+    <div class="feedback" id="proLock">Os dados só aparecem depois que o responsável autorizar em Privacidade.</div>
+    <p class="muted">Para testar o protótipo: abra o painel do responsável pela lista ao lado e ligue o compartilhamento.</p>
+    <button class="btn" data-go="s1">← Trocar perfil</button>
+  </section>
+
+  <!-- 9 Check-in de humor -->
+  <section class="screen" id="s9">
+    <h2>Oi! Como você está agora?</h2>
+    <p class="muted">Não tem resposta certa. Isso ajuda o jogo a combinar com você.</p>
+    <div class="moods">
+      <button class="btn" data-mood="calmo"><span>😌</span>Calmo</button>
+      <button class="btn" data-mood="feliz"><span>😊</span>Feliz</button>
+      <button class="btn" data-mood="cansado"><span>🥱</span>Cansado</button>
+      <button class="btn" data-mood="agitado"><span>😣</span>Agitado</button>
+    </div>
+    <div class="feedback" id="moodFb" aria-live="polite">Toque no que parece mais com você.</div>
+    <div id="moodNext" style="display:none">
+      <button class="btn primary" id="moodGo">Ir para as pontes</button>
+      <button class="btn" data-go="s5" id="moodCalm" style="display:none">🌿 Primeiro, um momento de calma</button>
+    </div>
+  </section>
+
+  <!-- 10 Diário de pontes -->
+  <section class="screen" id="s10">
+    <h2>Meu diário de pontes 📔</h2>
+    <p>Cada ponte atravessada vira uma pedrinha aqui.</p>
+    <div class="stones" id="stones"></div>
+    <p class="muted">Sem pontos, sem ranking, sem sequência de dias. É só uma lembrança do caminho.</p>
+    <button class="btn" data-go="s2">← Voltar ao caminho</button>
+  </section>
+
+  <!-- 11 Fim do tempo de hoje -->
+  <section class="screen" id="s11">
+    <div style="text-align:center;font-size:56px;margin-top:20px">🌙</div>
+    <h2 style="text-align:center">Por hoje é só</h2>
+    <p style="text-align:center">Você usou o tempo de hoje. As pontes vão estar aqui amanhã, do mesmo jeito.</p>
+    <p class="muted" style="text-align:center">O tempo foi combinado com o seu responsável.</p>
+    <button class="btn" data-go="s10">📔 Ver meu diário</button>
+    <button class="btn" data-go="s5">🌿 Ficar um pouco na calma</button>
+  </section>
+
+  <!-- 8 Onde buscar ajuda -->
+  <section class="screen" id="s8">
+    <h2>Onde buscar ajuda</h2>
+    <p>O Pontes da Mente é um complemento. Quem cuida de verdade são os profissionais.</p>
+    <p class="muted">Digite só a sua cidade ou bairro. Não usamos o GPS e não guardamos o que você digita.</p>
+    <input type="text" id="cityInput" placeholder="Ex.: Brasília, Asa Sul" aria-label="Cidade ou bairro">
+    <button class="btn primary" id="helpBtn">Ver serviços perto de mim</button>
+    <div class="help" id="helpOut" style="display:none">
+      <p><b>CAPSi (Centro de Atenção Psicossocial Infantojuvenil)</b></p>
+      <p>Aqui apareceria a lista de CAPSi da cidade informada, com endereço e telefone.</p>
+      <p class="muted">Exemplo de protótipo. Em uma versão real, a lista viria de uma base oficial do SUS.</p>
+      <p>Em emergência, ligue 192 (SAMU) ou 188 (CVV).</p>
+    </div>
+    <button class="btn" data-go="s1">← Voltar</button>
+  </section>
+
+  <div class="lock" id="mandOverlay" role="dialog" aria-label="Pausa obrigatória">
+    <div style="font-size:48px"><span class="breathing">🪷</span></div>
+    <h2>Hora da pausa</h2>
+    <p>Você jogou um pouquinho. Agora o corpo descansa. Respire com a flor.</p>
+    <p class="muted">O jogo volta em <b id="mandCount">20</b> segundos.</p>
+    <div class="pbar"><span id="mandBar"></span></div>
+    <p class="muted">(No app real, o tempo é definido pelo responsável.)</p>
+    <button class="btn primary" id="mandBtn" style="max-width:240px;opacity:.4" disabled>Voltar ao jogo</button>
+  </div>
+
+  <div class="lock" id="pinOverlay" role="dialog" aria-label="Área para adultos">
+    <div style="font-size:40px">🔒</div>
+    <h2>Área para adultos</h2>
+    <p class="muted">Digite o PIN de 4 números.</p>
+    <div class="pin"><input inputmode="numeric" maxlength="1" aria-label="1º número"><input inputmode="numeric" maxlength="1" aria-label="2º número"><input inputmode="numeric" maxlength="1" aria-label="3º número"><input inputmode="numeric" maxlength="1" aria-label="4º número"></div>
+    <p class="muted" id="pinMsg">(Protótipo: o PIN de teste é 1234.)</p>
+    <div class="row" style="width:100%"><button class="btn" id="pinCancel">Cancelar</button><button class="btn primary" id="pinOk">Entrar</button></div>
+  </div>
+
+  <div class="lock" id="lockOverlay">
+    <div style="font-size:48px">🌿</div>
+    <h2>Pausa</h2>
+    <p>Vamos descansar um pouquinho. Quando quiser, é só voltar.</p>
+    <button class="btn primary" id="resumeBtn" style="max-width:240px">Voltar ao jogo</button>
+  </div>
+</div>
+
+<aside class="legend">
+  <h3>Pontes da Mente · protótipo (versão 5)</h3>
+  <p class="muted">Projeto de Extensão IESB · ODS 3 (Saúde e bem-estar). Wireframe navegável de média fidelidade. Clique nas telas ou na lista.</p>
+  <ol id="nav">
+    <li data-go="s1">Boas-vindas e perfil</li>
+    <li data-go="s2">Início da criança</li>
+    <li data-go="s3">Missão: emoções</li>
+    <li data-go="s4">Missão: situação social</li>
+    <li data-go="s5">Pausa e calma</li>
+    <li data-go="s6">Painel do responsável</li>
+    <li data-go="s7">Painel do profissional/CAPSi</li>
+    <li data-go="s8">Onde buscar ajuda</li>
+    <li data-go="s9">Como você está?</li>
+    <li data-go="s10">Diário de pontes</li>
+    <li data-go="s11">Fim do tempo de hoje</li>
+  </ol>
+  <div class="why" id="why"></div>
+  <button class="btn" id="simMand" style="margin-top:10px">⏸ Simular pausa obrigatória</button>
+  <button class="btn" data-go="s11">🌙 Simular fim do tempo de hoje</button>
+</aside>
+
+<script>
+  const why = {
+    s1:"Previsível e curta. Termo de privacidade em linguagem simples, voz opcional e acesso rápido a ajuda profissional.",
+    s2:"Uma missão por vez, ritmo constante, personagem escolhido pela criança. Mostra quando vem a próxima pausa. A ponte 3 “dorme” até amanhã, sem tom de punição. A ponte 4 (barulho) fica sempre acordada, e o botão “Estou mal agora” leva à calma em um toque.",
+    s3:"Sem tempo limite. O rosto do Leo não muda com a escolha (para não confundir). O retorno é gentil e explica como o corpo mostra cada emoção.",
+    s4:"Passo a passo antes de agir, com desfazer e sair. Mostra como lidar com um “não” respirando e escolhendo outra brincadeira.",
+    s5:"Respiração guiada com uma flor, em ritmo normal, mais devagar ou sem movimento, som suave sem agudos, sem prazo. Botão de pausa sempre visível no topo.",
+    s6:"Protegido por um portão para adultos (segurar 3 segundos e PIN). O responsável controla som, texto, transições, tempo e consentimento (desligado por padrão) e recebe dicas de mediação.",
+    s7:"Mostra progresso resumido só com consentimento. Apoia o CAPSi, sem substituir o cuidado. Exporta PDF com campo para anotações.",
+    s8:"Liga o app à rede pública (CAPSi) sem coletar localização: a pessoa digita só cidade ou bairro.",
+    s9:"Check-in de humor antes de jogar. Se a criança está agitada ou cansada, o jogo sugere a calma primeiro, sem obrigar.",
+    s10:"Recompensa calma e não viciante: pedrinhas de lembrança, sem pontos, ranking ou sequência de dias.",
+    s11:"Quando acaba o tempo combinado, o jogo encerra com gentileza e previsibilidade, sem contagem regressiva."
+  };
+  let cur="s1", prev=[];
+  const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+  const childScreens=['s2','s3','s4','s5','s9','s10','s11'];
+  let adultOK=false, pinNext=null;
+  function askPin(fn){ pinNext=fn; $$('#pinOverlay .pin input').forEach(i=>i.value=''); $('#pinMsg').textContent='(Protótipo: o PIN de teste é 1234.)'; $('#pinOverlay').classList.add('on'); $('#pinOverlay .pin input').focus(); }
+  function go(id, push=true){
+    if(id==='s1' && childScreens.includes(cur) && !adultOK){ askPin(()=>{ adultOK=true; go(id,push); }); return; }
+    if(id==='s2'||id==='s9') adultOK=false;
+    if(push && cur!==id) prev.push(cur);
+    $('#sosBtn').classList.toggle('on',['s2','s3','s4','s9','s10'].includes(id));
+    $$('.screen').forEach(s=>s.classList.toggle('on', s.id===id));
+    cur=id;
+    $$('#nav li').forEach(li=>li.classList.toggle('active', li.dataset.go===id));
+    $('#why').textContent="Por que assim: "+why[id];
+    $('#backBtn').style.visibility = prev.length? 'visible':'hidden';
+  }
+  document.addEventListener('click',e=>{
+    const t=e.target.closest('[data-go]'); if(t){ go(t.dataset.go); }
+  });
+  $('#backBtn').onclick=()=>{ if(prev.length) go(prev.pop(), false); };
+  $('#pauseBtn').onclick=()=>$('#lockOverlay').classList.add('on');
+  $('#resumeBtn').onclick=()=>$('#lockOverlay').classList.remove('on');
+
+  const msgs={
+    triste:["😢","Isso mesmo! Quando algo cai, muita gente fica triste. Obrigado por pensar com calma.","Ombros caídos, olhar para baixo, passos lentos."],
+    bravo:["😠","Pode ser. Alguns ficam bravos quando algo dá errado. Que tal olhar o corpo do Leo de novo?","Punhos fechados, corpo duro, testa franzida."],
+    feliz:["😊","Hum, olhe de novo para o rosto e o corpo do Leo. Ele parece feliz? Pode tentar outra opção, sem pressa.","Corpo leve, ombros para cima, sorriso."],
+    assustado:["😨","Pode ser também, mas o corpo dele parece mais triste. Quer olhar de novo?","Corpo encolhido, mãos perto do rosto, olhos bem abertos."]
+  };
+  $$('[data-emo]').forEach(b=>b.onclick=()=>{
+    const m=msgs[b.dataset.emo]; $('#emoFb').textContent=m[1]; $('#leoBody').textContent='Quando alguém está '+b.dataset.emo+', o corpo costuma ficar assim: '+m[2]; $$('[data-emo]').forEach(x=>x.style.borderColor=''); b.style.borderColor='var(--calm-d)';
+  });
+  $$('[data-say]').forEach(b=>b.onclick=()=>{ $('#sayFb').textContent="Você escolheu: “"+b.dataset.say+"”. Pronto para tentar quando quiser."; });
+  $('#undoSay').onclick=()=>{ $('#sayFb').textContent="Nenhuma frase escolhida ainda."; $('#scene').innerHTML=''; };
+  $('#noBtn').onclick=()=>{
+    $('#scene').innerHTML='<span class="breathing">'+avatar+'</span> 💭 <small style="font-size:14px">respira fundo…</small>';
+    $('#sayFb').textContent='Ouvir “não” pode dar uma sensação ruim, e tudo bem. O personagem respira fundo, espera e escolhe outra brincadeira. Você também pode.';
+    setTimeout(()=>{ $('#scene').innerHTML=avatar+' 🧩 <small style="font-size:14px">escolheu outra brincadeira</small>'; },3500);
+  };
+
+  $('#silBtn').onclick=()=>{
+    $('#scene').innerHTML='<span class="breathing">'+avatar+'</span> 💭 <small style="font-size:14px">espera um pouquinho…</small>';
+    $('#sayFb').textContent='Às vezes o amigo não responde porque está concentrado. Você pode esperar, repetir uma vez com calma ou escolher outra brincadeira. Se ficar difícil, chamar um adulto também é um bom jeito.';
+  };
+  let snd=true;
+  $('#sndBtn').onclick=()=>{ snd=!snd; $('#sndState').textContent=snd?'ligado':'desligado'; };
+
+  function syncConsent(){
+    const on=$('#consent').checked;
+    $('#proData').style.display=on?'block':'none';
+    $('#proLock').style.display=on?'none':'block';
+    $('#consentTag').textContent=on?'com consentimento':'sem consentimento';
+  }
+  $('#consent').onchange=syncConsent; syncConsent();
+  $$('#avatars button').forEach(b=>b.onclick=()=>{
+    $$('#avatars button').forEach(x=>x.classList.remove('sel')); b.classList.add('sel');
+    $('#avName').textContent=b.dataset.av; avatar=b.dataset.av;
+  });
+  let avatar='🐢';
+  $$('[data-done]').forEach(b=>b.onclick=()=>{ startMand(); setTimeout(()=>go('s2'),300); });
+  function startMand(){
+    const o=$('#mandOverlay'), btn=$('#mandBtn'); let n=20; const bar=$('#mandBar'); bar.style.transition='none'; bar.style.width='0%'; setTimeout(()=>{bar.style.transition='width 20s linear'; bar.style.width='100%';},50);
+    o.classList.add('on'); $('#lockOverlay').classList.remove('on'); $('#pauseBtn').disabled=true; $('#pauseBtn').style.opacity=.4; btn.disabled=true; btn.style.opacity=.4; $('#mandCount').textContent=n;
+    const t=setInterval(()=>{ n--; $('#mandCount').textContent=n; if(n<=0){ clearInterval(t); btn.disabled=false; btn.style.opacity=1; $('#mandCount').textContent='0'; } },1000);
+  }
+  $('#mandBtn').onclick=()=>{ $('#mandOverlay').classList.remove('on'); $('#pauseBtn').disabled=false; $('#pauseBtn').style.opacity=1; };
+  $('#simMand').onclick=startMand;
+  let holdT;
+  const hb=$('#holdBtn');
+  const startHold=()=>{ hb.classList.add('on'); holdT=setTimeout(()=>{ stopHold(); askPin(()=>{ $('#gate').style.display='none'; $('#adult').style.display='block'; }); },3000); };
+  const stopHold=()=>{ hb.classList.remove('on'); clearTimeout(holdT); };
+  hb.addEventListener('mousedown',startHold); hb.addEventListener('touchstart',startHold);
+  ['mouseup','mouseleave','touchend'].forEach(ev=>hb.addEventListener(ev,stopHold));
+  $$('#pinOverlay .pin input').forEach((inp,i,all)=>inp.addEventListener('input',()=>{ if(inp.value && all[i+1]) all[i+1].focus(); }));
+  $('#pinOk').onclick=()=>{ const v=$$('#pinOverlay .pin input').map(i=>i.value).join(''); if(v==='1234'){ $('#pinOverlay').classList.remove('on'); if(pinNext) pinNext(); } else { $('#pinMsg').textContent='Esse número não confere. Tente de novo, sem pressa.'; } };
+  $('#pinCancel').onclick=()=>{ $('#pinOverlay').classList.remove('on'); pinNext=null; };
+  $$('#paceTabs button').forEach(b=>b.onclick=()=>{ $$('#paceTabs button').forEach(x=>x.classList.remove('sel')); b.classList.add('sel'); const v=+b.dataset.pace; document.body.classList.toggle('nomove',v===0); if(v) document.documentElement.style.setProperty('--pace',v+'s'); });
+  $('#bkBtn').onclick=()=>{ const a='ABCDEFGHJKLMNPQRSTUVWXYZ23456789',g=()=>Array.from({length:4},()=>a[Math.floor(Math.random()*a.length)]).join(''); $('#bkCode').textContent='PM-'+g()+'-'+g(); $('#bkCode').style.display='block'; $('#bkMsg').style.display='block'; };
+  $('#slowT').onchange=e=>document.body.classList.toggle('fast',!e.target.checked);
+  $('#bigT').onchange=e=>document.body.classList.toggle('big',e.target.checked);
+  $('#listenBtn').onclick=()=>{ $('#listenMsg').style.display='block'; };
+  $('#pdfBtn').onclick=()=>{ $('#pdfMsg').style.display='block'; };
+  $('#helpBtn').onclick=()=>{ $('#helpOut').style.display='block'; };
+  // ===== missões, humor, calma e diário =====
+  const done={1:false,2:false};
+  const stoneDefs=[['🎭','Sentimentos'],['🤝','Brincar junto'],['⏳','Esperar a vez'],['🎧','Barulho'],['🌈','Em breve'],['🌟','Em breve']];
+  function drawStones(){
+    $('#stones').innerHTML=stoneDefs.map((d,i)=>{const got=(i===0&&done[1])||(i===1&&done[2]);
+      return got?'<div class="stone got"><b>'+d[0]+'</b>'+d[1]+'</div>':'<div class="stone">'+(i<4?d[1]:'…')+'</div>';}).join('');
+  }
+  drawStones();
+  $$('[data-done]').forEach(b=>b.onclick=()=>{ done[b.dataset.done]=true; drawStones();
+    const n=$$('.path .node')[b.dataset.done-1]; if(n && !n.querySelector('.ok')) n.insertAdjacentHTML('beforeend',' <span class="ok">✔ atravessada</span>');
+    startMand(); setTimeout(()=>go('s2'),300); });
+
+  // check-in de humor
+  $$('[data-mood]').forEach(b=>b.onclick=()=>{
+    const m=b.dataset.mood; $('#moodChip').textContent='Hoje: '+b.textContent.trim(); $('#moodChip').style.display='inline-block';
+    const soft=(m==='cansado'||m==='agitado');
+    $('#moodFb').textContent= soft ? 'Obrigado por contar. Quando a gente está '+m+', um momento de calma pode ajudar. Você escolhe.' : 'Que bom! Vamos atravessar uma ponte de cada vez.';
+    $('#moodNext').style.display='block'; $('#moodCalm').style.display= soft?'block':'none';
+    $('#moodGo').textContent= soft?'Quero ir para as pontes mesmo assim':'Ir para as pontes';
+  });
+  $('#moodGo').onclick=()=>go('s2');
+
+  // mapa acompanha o personagem
+  $$('#avatars button').forEach(b=>b.addEventListener('click',()=>{ $('#mapAvatar').textContent=b.dataset.av; }));
+
+  // missão de emoções em 3 situações
+  const rounds=[
+    {q:'Como o Leo está se sentindo?',face:'😞',pose:'Leo está parado, de cabeça baixa, olhando o brinquedo no chão.',story:'O Leo deixou o brinquedo cair e ele quebrou.',ans:'triste',hint:'Olhe a boca: ela está virada para baixo. E a cabeça está baixa.'},
+    {q:'Como a Bia está se sentindo?',face:'😄',pose:'Bia está pulando, com os braços para cima.',story:'A Bia ganhou um livro de dinossauros. Ela adora dinossauros!',ans:'feliz',hint:'Olhe a boca: ela está sorrindo. E o corpo está leve, pulando.'},
+    {q:'Como o Téo está se sentindo?',face:'😨',pose:'Téo está com as mãos nos ouvidos e o corpo encolhido.',story:'Um balão estourou bem perto do Téo. Fez um barulho alto.',ans:'assustado',hint:'Olhe os olhos: estão bem abertos. E as mãos estão protegendo os ouvidos.'}
+  ];
+  const bodyOf={triste:'ombros caídos, olhar para baixo, passos lentos.',bravo:'punhos fechados, corpo duro, testa franzida.',feliz:'corpo leve, ombros para cima, sorriso.',assustado:'corpo encolhido, mãos perto do rosto, olhos bem abertos.'};
+  let r=0;
+  function showRound(){
+    const k=rounds[r];
+    $('#emoQ').textContent=k.q; $('#leoFace').textContent=k.face; $('#leoPose').textContent=k.pose; $('#emoStory').textContent=k.story;
+    $('#emoStep').textContent='Situação '+(r+1)+' de 3'+(r===2?' · a última. Depois vem uma pausa de 20 segundos.':'');
+    $$('#emoDots i').forEach((d,i)=>d.classList.toggle('on',i<=r));
+    $('#leoBody').textContent=''; $('#emoFb').textContent='Escolha uma opção. Não existe resposta com pressa.';
+    $('#intensBox').style.display='none'; $('#nextEmo').style.display='none'; $('#doneEmo').style.display='none';
+    $$('[data-emo]').forEach(x=>x.style.borderColor='');
+  }
+  $$('[data-emo]').forEach(b=>b.onclick=()=>{
+    const k=rounds[r], e=b.dataset.emo;
+    $$('[data-emo]').forEach(x=>x.style.borderColor=''); b.style.borderColor='var(--calm-d)';
+    $('#leoBody').textContent='Quando alguém está '+e+', o corpo costuma ficar assim: '+bodyOf[e];
+    if(e===k.ans){
+      $('#emoFb').textContent='Isso! Você olhou com atenção. Agora: esse sentimento é pequeno, médio ou grande?';
+      $('#intensBox').style.display='block';
+    } else {
+      $('#emoFb').textContent='Pode ser parecido. Olhe de novo o rosto e o corpo. Se quiser, peça uma dica.';
+      $('#intensBox').style.display='none'; $('#nextEmo').style.display='none';
+    }
+  });
+  $$('[data-int]').forEach(b=>b.onclick=()=>{
+    $('#emoFb').textContent='Sentimentos podem ser pequenos ou grandes, e todos estão tudo bem. Você achou '+b.dataset.int+'.';
+    if(r<2){ $('#nextEmo').style.display='block'; } else { $('#emoFb').textContent+=' Você atravessou a Ponte 1! 🌉'; $('#doneEmo').style.display='block'; }
+  });
+  $('#nextEmo').onclick=()=>{ r++; showRound(); };
+  $('#hintBtn').onclick=()=>{ $('#emoFb').textContent='Dica: '+rounds[r].hint; };
+  showRound();
+
+  // missão social: escolha do jeito
+  const ways={ok:'Ótimo jeito! Chegar perto e perguntar ajuda o amigo a entender o que você quer.',
+              pegar:'Hum, a Nina pode ficar chateada se alguém pegar sem pedir. Que tal perguntar antes?',
+              longe:'Tudo bem ficar perto só olhando, se você quiser. Quando estiver pronto, pode perguntar.'};
+  $$('[data-way]').forEach(b=>b.onclick=()=>{ $$('[data-way]').forEach(x=>x.style.borderColor=''); b.style.borderColor='var(--calm-d)'; $('#wayFb').textContent=ways[b.dataset.way]; });
+
+  // ferramentas de calma
+  const tools={
+    flor:'<p style="text-align:center">Respire com a flor. Ela abre, você enche o peito. Ela fecha, você solta o ar.</p><div class="bubble"><span style="font-size:56px">🪷</span></div>',
+    olhar:'<p style="text-align:center">Olhe ao seu redor, devagar.</p><div class="help"><p>1. Encontre <b>3 coisas azuis</b>.</p><p>2. Encontre <b>2 coisas macias</b> para tocar.</p><p>3. Escute <b>1 som baixinho</b>.</p></div><p class="muted" style="text-align:center">Sem pressa. Pode pular qualquer passo.</p>',
+    borboleta:'<p style="text-align:center">Cruze os braços no peito, como asas. Dê tapinhas leves, um lado de cada vez.</p><div style="text-align:center;margin:18px 0"><span class="butterfly">🦋</span></div><p class="muted" style="text-align:center">Direita… esquerda… bem devagar.</p>'
+  };
+  $$('[data-tool]').forEach(b=>b.onclick=()=>{ $$('[data-tool]').forEach(x=>x.classList.remove('sel')); b.classList.add('sel'); $('#calmTool').innerHTML=tools[b.dataset.tool]; });
+
+  go('s1', false);
+</script>
+</body>
+</html>
